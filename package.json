@@ -1,0 +1,21 @@
+{
+  "name": "@ofvp_project/daemon",
+  "version": "4.0.1",
+  "description": "daemon for managing and communicating with other servers.",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OFVp-Project/DeamonManeger.git"
+  },
+  "keywords": [
+    "ofvp_project",
+    "api"
+  ],
+  "author": "ofvp_project",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/OFVp-Project/DeamonManeger/issues"
+  },
+  "homepage": "https://github.com/OFVp-Project/DeamonManeger#readme"
+}
