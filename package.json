@@ -17,5 +17,18 @@
   "bugs": {
     "url": "https://github.com/OFVp-Project/DeamonManeger/issues"
   },
-  "homepage": "https://github.com/OFVp-Project/DeamonManeger#readme"
+  "homepage": "https://github.com/OFVp-Project/DeamonManeger#readme",
+  "dependencies": {
+    "body-parser": "^1.19.2",
+    "connect-mongodb-session": "^3.1.1",
+    "cors": "^2.8.5",
+    "cron": "^1.8.2",
+    "express": "^4.17.3",
+    "express-rate-limit": "^6.3.0",
+    "express-session": "^1.17.2",
+    "js-yaml": "^4.1.0",
+    "mongoose": "^6.2.5",
+    "socket.io": "^4.4.1",
+    "systeminformation": "^5.11.7"
+  }
 }
