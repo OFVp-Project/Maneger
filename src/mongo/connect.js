@@ -3,6 +3,7 @@ if (!MongoDB_URL) throw new Error("Invalid MongoDB URL");
 const Mongoose = require("mongoose");
 const Connection = Mongoose.createConnection(`${MongoDB_URL}/OFVpServer`);
 module.exports.Connection = Connection;
+const daemon = require("../daemon/connect");
 /**
  * @type {Status: "Connecting"|"Connected"|"Error"; Error: null|Error;}
  */
@@ -10,11 +11,13 @@ const ConnectionStatusObject = {Status: "Connecting", Error: null};
 Connection.on("connected", () => {
   ConnectionStatusObject.Status = "Connected";
   ConnectionStatusObject.Error = null;
+  daemon.io.emit("monngoConnection", "Connected");
 });
 Connection.on("error", err => {
   ConnectionStatusObject.Status = "Error";
   ConnectionStatusObject.Error = err;
   console.error("Error to connect in MongoDB", err);
+  daemon.io.emit("monngoConnection", err);
 });
 
 /**

@@ -3,6 +3,7 @@ const { Connection } = require("../connect");
 const { Schema } = require("mongoose");
 const { DecryptPassword, EncryptPassword } = require("../../PasswordEncrypt");
 const { gen_pool_ips } = require("./WireguardIpmaneger");
+const daemon = require("../../daemon/connect");
 
 const UsersSchema = Connection.model("Users", new Schema({
   // Basic Info
@@ -139,7 +140,13 @@ module.exports.on = (callback) => onChangecallbacks.push(callback);
  * @param {"delete"|"insert"|"update"} operationType 
  * @param {typeUser} data 
  */
-function onRun(operationType, data) {onChangecallbacks.forEach(callback => callback({operationType, fullDocument: data}));}
+function onRun(operationType, data) {
+  daemon.io.emit("userOn", operationType, data);
+  onChangecallbacks.forEach(callback => callback({
+    operationType,
+    fullDocument: data
+  }));
+}
 
 // function to manipulate database
 module.exports.getUsers = getUsers;
@@ -169,6 +176,11 @@ async function getUsersDecrypt() {
     return user;
   });
 }
+
+daemon.io.on("connection", async socket => {
+  socket.emit("usersEncrypt", await getUsers());
+  socket.emit("usersDecrypt", await getUsersDecrypt());
+});
 
 module.exports.findOne = findOne;
 /**

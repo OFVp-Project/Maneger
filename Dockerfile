@@ -25,7 +25,8 @@ tar xfz /tmp/node.tar.gz -C /tmp/Node && rm -rf /tmp/node.tar.* && cp -rf /tmp/N
 
 # Setup Project
 WORKDIR /usr/src/Backend
-ENV MongoDB_URL="mongodb://localhost:27017" NODE_ENV="production" COOKIE_SECRET="" PASSWORD_ENCRYPT=""
+ENV MongoDB_URL="mongodb://localhost:27017" NODE_ENV="production" COOKIE_SECRET="" PASSWORD_ENCRYPT="" DAEMON_PASSWORD="" DAEMON_USER=""
+EXPOSE 3000/tcp
 ENTRYPOINT [ "node", "--trace-warnings", "src/index.js" ]
 COPY package*.json ./
 RUN npm install --no-save --debug

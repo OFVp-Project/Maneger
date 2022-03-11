@@ -6,6 +6,7 @@ const SocketIo = require("socket.io");
 const app = express();
 module.exports.app = app;
 const Server = http.createServer(app);
+Server.listen(3000, () => console.info("API listen in port 3000"));
 module.exports.Server = Server;
 const io = new SocketIo.Server(Server);
 module.exports.io = io;
@@ -72,11 +73,9 @@ app.post("/login", RateLimit, async (req, res) => {
       ConnectedStatus = true;
     }
     res.set("AuthStatus", String(ConnectedStatus));
-    if (Redirect) return res.redirect(`${Redirect}?AuthStatus=${ConnectedStatus}`);
     return res.sendStatus(200);
   } catch (err) {
-    if (!Redirect) return res.status(400).json({error: String(err.stack||err).split("\n")});
-    return res.redirect(`${Redirect}?Error=${encodeURIComponent(String(err.stack||err))}`);
+    return res.status(400).json({error: String(err.stack||err).split("\n")});
   }
 });
 app.post("/authCheck", userAuth.authEndpoints, async ({res}) => res.sendStatus(200));
@@ -92,6 +91,17 @@ app.post("/logout", RateLimit, async (req, res) => {
     return res.redirect(`${Redirect}?Error=${String(err.stack||err)}`);
   }
 });
+
+// Endpoints
+// Users
+const usersV3 = require("./v3/users");
+app.use("/users/v3", userAuth.authEndpoints, usersV3.app);
+app.use("/users", ({res}) => res.status(400).json({message: "set endpoint version, check wiki: https://github.com/OFVp-Project/DeamonManeger/wiki/Users"}));
+
+// Auth
+const authV3 = require("./v3/auth");
+app.use("/auth/v3", userAuth.authEndpoints, authV3.app);
+app.use("/auth", ({res}) => res.status(400).json({message: "set endpoint version, check wiki: https://github.com/OFVp-Project/DeamonManeger/wiki/Auth"}));
 
 // Backend get errors and send to client.
 app.use(({res})=>{res.status(404).json({message: "endpoint no exist."})});

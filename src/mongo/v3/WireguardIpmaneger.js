@@ -1,10 +1,18 @@
 const mongo_user = require("./users");
 const IpMatching = require("ip-matching");
 const { Netmask } = require("netmask");
+const daemon = require("../../daemon/connect");
+
+/** @type {{v4: {ip: string; mask: string;}; v6: {ip: string; mask: string;};}} */
+const typeIps = {v4: {ip: "", mask: ""}, v6: {ip: "", mask: ""}}
 
 const IgnoreIps = [];
-/** @type {Array<{v4: {ip: string; mask: string;}; v6: {ip: string; mask: string;};}>} */
+/** @type {Array<typeIps>} */
 let pool = [];
+/** @type {typeIps} */
+let wireguardInterface = {};
+daemon.io.on("connection", socket => socket.emit("wireguardInterface", wireguardInterface));
+
 let lockLoadips = true;
 
 /** @param {string} ip IPv4  @returns {void} */
@@ -13,6 +21,7 @@ module.exports.gen_pool_ips = gen_pool_ips;
 async function gen_pool_ips() {
   const Users = (await mongo_user.getUsers()).map(User => User.wireguard).reduce((previousValue, currentValue) => currentValue.concat(previousValue), []).map(a => a.ip);
   const IP_Pool = await getPoolIP();
+  if (IP_Pool.length === 0) throw new Error("No ip avaibles");
   return IP_Pool.filter(Ip => {
     if (Users.find(User => User.v4.ip === Ip.v4.ip)) return false;
     if (IgnoreIps.find(User => User === Ip.v4.ip)) return false;
@@ -78,4 +87,9 @@ async function poolGen() {
   });
   return IP_Pool;
 }
-poolGen().then(res => {pool = res; lockLoadips = false;});
+poolGen().then(res => {
+  wireguardInterface = res.shift();
+  daemon.io.emit("wireguardInterface", wireguardInterface);
+  pool = res;
+  lockLoadips = false;
+});
