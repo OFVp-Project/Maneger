@@ -11,20 +11,19 @@ const ConnectionStatusObject = {Status: "Connecting", Error: null};
 Connection.on("connected", () => {
   ConnectionStatusObject.Status = "Connected";
   ConnectionStatusObject.Error = null;
-  daemon.io.emit("monngoConnection", "Connected");
 });
 Connection.on("error", err => {
   ConnectionStatusObject.Status = "Error";
   ConnectionStatusObject.Error = err;
   console.error("Error to connect in MongoDB", err);
-  daemon.io.emit("monngoConnection", err);
 });
 
 /**
  * Get Users Database Connection Status
  * @returns {Promise<ConnectionStatusObject>}
  */
-module.exports.ConnectionStatus = async () => {
+module.exports.ConnectionStatus = ConnectionStatus;
+async function ConnectionStatus() {
   while (true) {
     if (ConnectionStatusObject.Status === "Connected") return;
     if (ConnectionStatusObject.Status === "Error") throw ConnectionStatusObject.Error;
@@ -32,3 +31,4 @@ module.exports.ConnectionStatus = async () => {
     await new Promise(res => setTimeout(res, 500));
   }
 }
+ConnectionStatus().then(data => daemon.io.emit("monngoConnection",data)).catch(err => daemon.io.emit("monngoConnection", err));
