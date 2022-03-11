@@ -11,20 +11,17 @@ ENV DEBIAN_FRONTEND="noninteractive"
 RUN apt update && apt -y install build-essential pkg-config gnupg git wget curl unzip zip sudo jq nano ca-certificates openssl procps
 
 # Install latest docker image
-RUN \
-mkdir /tmp/Node && \
-NODEURL="" \
-NODEVERSION=$(curl -sL https://api.github.com/repos/nodejs/node/releases | grep tag_name | cut -d '"' -f 4 | sort -V | tail -n 1) && \
+RUN mkdir /tmp/Node && NODEURL=""; NODEVERSION=$(curl -sL https://api.github.com/repos/nodejs/node/releases | grep tag_name | cut -d '"' -f 4 | sort -V | tail -n 1) && \
 case $(uname -m) in \
-  x86_64 ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-x64.tar.xz";; \
-  aarch64 ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-arm64.tar.xz";; \
-  armv7l ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-armv7l.tar.xz";; \
-  ppc64el ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-ppc64le.tar.xz";; \
-  s390x ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-s390x.tar.xz";; \
+  x86_64 ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-x64.tar.gz";; \
+  aarch64 ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-arm64.tar.gz";; \
+  armv7l ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-armv7l.tar.gz";; \
+  ppc64el ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-ppc64le.tar.gz";; \
+  s390x ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-s390x.tar.gz";; \
   *) echo "Unsupported architecture"; exit 1;; \
 esac && \
-echo "Node bin Url: ${NODEURL}"; wget -q "${NODEURL}" -O /tmp/node.tar.xz && \
-tar -xJf /tmp/node.tar.xz -C /tmp/Node && rm -rf /tmp/node.tar.xz && cp -rf /tmp/Node/*/* /usr && rm -rf /tmp/Node && npm -g install npm@latest
+echo "Node bin Url: ${NODEURL}"; wget -q "${NODEURL}" -O /tmp/node.tar.gz && \
+tar xfz /tmp/node.tar.gz -C /tmp/Node && rm -rf /tmp/node.tar.* && cp -rf /tmp/Node/*/* /usr && rm -rf /tmp/Node && npm -g install npm@latest
 
 # Setup Project
 WORKDIR /usr/src/Backend
