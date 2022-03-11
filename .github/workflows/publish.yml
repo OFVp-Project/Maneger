@@ -74,35 +74,14 @@ jobs:
           fi
           cat $GITHUB_ENV
 
-      - name: Pre build Docker images
+      - name: Push docker image
         if: github.event_name == 'push' || github.event_name == 'release'
         id: pre_build
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: false
+          push: true
           tags: ${{ env.DOCKERIMAGE }}:${{ env.IMAGE_TAG }}
           platforms: ${{ env.DOCKERPLATFORM }}
           cache-from: type=gha,scope=${{ hashFiles('**/package-lock.json') }}
           cache-to: type=gha,mode=max,scope=${{ hashFiles('**/package-lock.json') }}
-
-      - name: Push server image
-        if: steps.pre_build.outcome == 'success'
-        id: serverpush
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          target: server
-          tags: ${{ env.DOCKERIMAGE }}:${{ env.IMAGE_TAG }}
-          platforms: ${{ env.DOCKERPLATFORM }}
-
-      - name: Push devcontainer image
-        if: steps.serverpush.outcome == 'success'
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          target: devcontainer
-          tags: ghcr.io/ofvp-project/devcontainer:latest
-          platforms: ${{ env.DOCKERPLATFORM }}
