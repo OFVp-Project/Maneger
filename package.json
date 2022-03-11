@@ -2,7 +2,7 @@
   "name": "@ofvp_project/daemon",
   "version": "4.0.1",
   "description": "daemon for managing and communicating with other servers.",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {},
   "repository": {
     "type": "git",

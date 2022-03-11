@@ -1,0 +1,81 @@
+const mongo_user = require("./users");
+const IpMatching = require("ip-matching");
+const { Netmask } = require("netmask");
+
+const IgnoreIps = [];
+/** @type {Array<{v4: {ip: string; mask: string;}; v6: {ip: string; mask: string;};}>} */
+let pool = [];
+let lockLoadips = true;
+
+/** @param {string} ip IPv4  @returns {void} */
+module.exports.addIgnoreIP = (ip) => {if (typeof ip === "string" && ip) {IgnoreIps.push(ip);return;}; throw new Error("Invalid IP");}
+module.exports.gen_pool_ips = gen_pool_ips;
+async function gen_pool_ips() {
+  const Users = (await mongo_user.getUsers()).map(User => User.wireguard).reduce((previousValue, currentValue) => currentValue.concat(previousValue), []).map(a => a.ip);
+  const IP_Pool = await getPoolIP();
+  return IP_Pool.filter(Ip => {
+    if (Users.find(User => User.v4.ip === Ip.v4.ip)) return false;
+    if (IgnoreIps.find(User => User === Ip.v4.ip)) return false;
+    return true;
+  });
+}
+
+async function getPoolIP() {
+  await new Promise(async res => {
+    while (true) {
+      if (!lock) return res();
+      await new Promise(res => setTimeout(res, 1000));
+    }
+  });
+  return pool;
+}
+
+/*
+  Thanks to VIJAYABAL DHANAPAL
+  stackoverflow answer https://stackoverflow.com/a/53760425
+*/
+function convert_ipv4_to_ipv6(ipV4 = ""){
+  const classValues = ipV4.split(".");
+  if(classValues.length){  
+    const str = classValues.reduce((acc, val, ind) => {
+      const mod = +val >= 16 ? +val%16 : +val;
+      const divider = +val >= 16 ? (val-mod)/16 : 0;
+      const hexaCode = (hexaVal)=>{
+        if (hexaVal === 10) return "A";
+        else if (hexaVal === 11) return "B";
+        else if (hexaVal === 12) return "C";
+        else if (hexaVal === 13) return "D";
+        else if (hexaVal === 14) return "E";
+        else if (hexaVal === 15) return "F";
+        else return hexaVal;
+      }
+      const modRes = hexaCode(mod);
+      const dividerRes = hexaCode(divider);
+      return ind === 1 ? `${acc}${dividerRes}${modRes}:`:`${acc}${dividerRes}${modRes}`;
+    }, "");
+    return `2002:${str}::`;
+  }
+  throw "Invalid Address";
+}
+
+async function poolGen() {
+  const NetPoolRange = "10.0.0.1-10.0.128.255";
+  const IP_Pool = IpMatching.getMatch(NetPoolRange).convertToMasks().map((mask) => mask.convertToSubnet().toString()).map((mask) => {
+    const Pool = [];
+    (new Netmask(mask)).forEach(ip => Pool.push(ip));
+    return Pool;
+  }).reduce((acc, val) => acc.concat(val), []).map(ip => {
+    return {
+      v4: {
+        ip: String(ip),
+        mask: IpMatching.getMatch(ip).convertToMasks()[0].convertToSubnet().toString().split("/")[1]
+      },
+      v6: {
+        ip: String(convert_ipv4_to_ipv6(ip)),
+        mask: IpMatching.getMatch(convert_ipv4_to_ipv6(ip)).convertToMasks()[0].convertToSubnet().toString().split("/")[1]
+      }
+    };
+  });
+  return IP_Pool;
+}
+poolGen().then(res => {pool = res; lockLoadips = false;});
