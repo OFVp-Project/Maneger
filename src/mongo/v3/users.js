@@ -134,7 +134,8 @@ const onChangecallbacks=[];
  * @param {(callback: {operationType: "delete"|"insert"|"update"; fullDocument: typeUser;}) => void} callback 
  * @returns {void}
  */
-module.exports.on = (callback) => onChangecallbacks.push(callback);
+const on = (callback) => onChangecallbacks.push(callback);
+module.exports.on = on;
 /**
  * 
  * @param {"delete"|"insert"|"update"} operationType 
@@ -178,6 +179,7 @@ async function getUsersDecrypt() {
 }
 
 daemon.io.on("connection", async socket => {
+  console.info(`Sending users to daemon client id ${socket.id}`);
   socket.emit("usersEncrypt", await getUsers());
   socket.emit("usersDecrypt", await getUsersDecrypt());
 });

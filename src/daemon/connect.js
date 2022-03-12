@@ -11,7 +11,10 @@ io.use((socket, next) => {
   if (DAEMON_PASSWORD === undefined || DAEMON_USER === undefined) return next();
   if (!DAEMON_PASSWORD || !DAEMON_USER) return next();
   if (DAEMON_PASSWORD === PASSWORD && DAEMON_USER === USER) return next();
+  console.error(`Failed auth to daemon socket.io id: ${socket.id}`);
   return next(new Error("Auth failed"));
 });
+io.on("connection", socket => console.log(`daemon Socket.io connect id: ${socket.id}`));
+
 // Export socket.io
 module.exports.io = io;
