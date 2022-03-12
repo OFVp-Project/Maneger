@@ -1,10 +1,10 @@
 version: "3.9"
 volumes:
   data_api:
+  data_ssh:
   MongoOFVp:
 networks:
   ofvp_network:
-    # enable_ipv6: true
 services:
   ofvp_mongodb:
     container_name: ofvp_mongodb
@@ -39,7 +39,39 @@ services:
       MongoDB_URL: "mongodb://ofvp_mongodb:27017"
       COOKIE_SECRET: "dev"
       PASSWORD_ENCRYPT: "dev"
+      DAEMON_PASSWORD: "dev"
+      DAEMON_USER: "dev"
     ports:
       - 3000:3000/tcp
     volumes:
       - data_api:/data
+
+  ofvp_openssh:
+    container_name: ofvp_openssh
+    restart: on-failure
+    image: ghcr.io/ofvp-project/openssh:nightly
+    depends_on:
+      - ofvp_daemon_maneger
+    networks:
+      - "ofvp_network"
+    environment:
+      DAEMON_HOST: "http://ofvp_daemon_maneger:5000"
+      DAEMON_PASSWORD: "dev"
+      DAEMON_USER: "dev"
+    ports:
+      - 2222:22/tcp
+    volumes:
+      - data_ssh:/data
+  ofvp_webproxy:
+    image: ghcr.io/ofvp-project/webproxy:nightly
+    container_name: ofvp_webproxy
+    restart: on-failure
+    depends_on:
+      - ofvp_server
+    networks:
+      - "ofvp_network"
+    ports:
+      - 80:80/tcp
+    command:
+      - "--ssh"
+      - "ofvp_openssh:22"

@@ -21,4 +21,20 @@ app.post("/register", async (req, res) => {
   }));
 });
 
-app.post("/update_privilegie", )
+app.post("/delete", async (req, res) => {
+  await mongo_v3_auth.deleteAuth(req.body.email, req.body.password);
+  return res.sendStatus(200);
+});
+
+app.post("/update_privilegie", async (req, res) => {
+  const { email, privilege } = req.body;
+  const auth = await mongo_v3_auth.findOne(email, password);
+  if (!auth) return res.status(400).json({
+    message: "Auth not found"
+  });
+  const data = await mongo_v3_auth.update_privilegie(email, privilege);
+  if (data === "no update") return res.status(400).json({
+    message: "no update"
+  });
+  return res.json(data);
+});

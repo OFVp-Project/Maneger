@@ -28,6 +28,7 @@ const wireguardInterfaceConfig = () => {
   fs.writeFileSync("/data/wireguardInterface.json", JSON.stringify(keys, null, 2));
   return keys;
 }
+module.exports.wireguardInterfaceConfig = wireguardInterfaceConfig;
 io.on("connection", async socket => {
   console.log(`daemon Socket.io connect id: ${socket.id}`);
   socket.emit("usersEncrypt", await mongoUser.getUsers());

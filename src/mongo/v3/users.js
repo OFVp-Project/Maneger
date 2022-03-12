@@ -193,7 +193,7 @@ module.exports.findOne = findOne;
 /**
  * Find one user in the Database
  * @param {string} username
- * @return {Promise<typeUser>}
+ * @return {Promise<typeUser|undefined>}
  */
 async function findOne(username) {
   if (!username) throw new Error("Required username to find user");

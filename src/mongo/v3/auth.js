@@ -101,6 +101,27 @@ async function findBool(EmailToken, Password) {
   return true;
 }
 
+module.exports.findOne = findOne;
+/**
+ * 
+ * @param {string} EmailToken 
+ * @param {string|undefined} Password 
+ * @returns {AuthToken|undefined}
+ */
+async function findOne(EmailToken, Password) {
+  const Auths = await getAuths();
+  if (Password === undefined) {
+    const AuthTokenObject = Auths.find(token => token.token === EmailToken);
+    if (!AuthTokenObject) return undefined;
+    return AuthTokenObject;
+  }
+  const AuthTokenObject = Auths.find(token => token.email === EmailToken);
+  if (!AuthTokenObject) return undefined;
+  const StringPass = await DecryptPassword(AuthTokenObject.password);
+  if (StringPass !== Password) return undefined;
+  return AuthTokenObject;
+}
+
 module.exports.checkAuth = checkAuth;
 /**
  * 
@@ -164,4 +185,20 @@ async function deleteAuth(EmailToken, Password) {
   await authSchema.deleteOne({ token: AuthTokenObject.token });
   onRun("delete", AuthTokenObject);
   return;
+}
+
+module.exports.update_privilegie = update_privilegie;
+/**
+ * 
+ * @param {string} email 
+ * @param {"root"|"user"} privilege 
+ * @returns {Promise<AuthToken|"no update">}
+ */
+async function update_privilegie(email, privilege){
+  if (!(privilege === "root"||privilege === "user")) throw new Error("Privilege invalid.");
+  const auth = (await getAuths()).find(us => us.email === email);
+  if (!auth) throw new Error("email no exist!");
+  if (auth.privilages === privilege) return "no update";
+  auth.privilages = privilege;
+  return await authSchema.updateOne({email: auth.email}, auth);
 }
