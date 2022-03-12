@@ -83,12 +83,10 @@ app.post("/logout", RateLimit, async (req, res) => {
   const {redirect: Redirect} = req.body;
   try {
     await new Promise((resolve, reject) => req.session.destroy(err => {if(err) return reject(err);resolve()}));
-    if (!Redirect) return res.sendStatus(200);
-    return res.redirect(Redirect);
+    return res.sendStatus(200);
   } catch (err) {
     console.log(String(err.stack||err));
-    if (!Redirect) return res.sendStatus(400).json({error: String(err.stack||err).split(/\r\n|\n/gi)});
-    return res.redirect(`${Redirect}?Error=${String(err.stack||err)}`);
+    return res.sendStatus(400).json({error: String(err.stack||err).split(/\r\n|\n/gi)});
   }
 });
 
