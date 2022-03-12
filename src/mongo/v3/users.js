@@ -201,6 +201,7 @@ async function findOne(username) {
   return userData;
 }
 
+module.exports.CreateWireguardKeys = CreateWireguardKeys;
 /**
  * Generate wireguard keys with crypto module.
  * 

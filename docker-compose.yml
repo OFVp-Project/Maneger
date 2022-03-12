@@ -1,6 +1,6 @@
 version: "3.9"
 volumes:
-  HttpInjectorData:
+  data_api:
   MongoOFVp:
 networks:
   ofvp_network:
@@ -23,8 +23,8 @@ services:
     - "--quiet"
     - "--logpath"
     - "/dev/null"
-  ofvp_server:
-    container_name: ofvp_server
+  ofvp_daemon_maneger:
+    container_name: ofvp_daemon_maneger
     restart: on-failure
     build:
       context: .
@@ -42,4 +42,4 @@ services:
     ports:
       - 3000:3000/tcp
     volumes:
-      - HttpInjectorData:/root/OFVpServer
+      - data_api:/data
