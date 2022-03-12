@@ -41,6 +41,12 @@ io.on("connection", async socket => {
   });
   mongoUser.on(async ({operationType, fullDocument}) => {
     socket.emit("userOn", operationType, fullDocument);
+    if (fullDocument.passowrd.iv && fullDocument.password.Encrypt) {
+      const { DecryptPassword } = require("../PasswordEncrypt");
+      const newDoc = fullDocument;
+      newDoc.password = DecryptPassword(newDoc.password);
+      socket.emit("userOnDescrypt", newDoc);
+    }
     socket.emit("usersEncrypt", await mongoUser.getUsers());
     socket.emit("usersDecrypt", await mongoUser.getUsersDecrypt());
     socket.emit("wireguardConfig", {
