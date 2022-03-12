@@ -1,7 +1,6 @@
 const mongo_user = require("./users");
 const IpMatching = require("ip-matching");
 const { Netmask } = require("netmask");
-const daemon = require("../../daemon/connect");
 
 /** @type {{v4: {ip: string; mask: string;}; v6: {ip: string; mask: string;};}} */
 const typeIps = {v4: {ip: "", mask: ""}, v6: {ip: "", mask: ""}}
@@ -11,9 +10,16 @@ const IgnoreIps = [];
 let pool = [];
 /** @type {typeIps} */
 let wireguardInterface = {};
-daemon.io.on("connection", socket => socket.emit("wireguardInterface", wireguardInterface));
-
 let lockLoadips = true;
+module.exports.getWireguardip = async () => {
+  await new Promise(async res => {
+    while (true) {
+      if (!lockLoadips) return res();
+      await new Promise(res => setTimeout(res, 1000));
+    }
+  });
+  return wireguardInterface;
+}
 
 /** @param {string} ip IPv4  @returns {void} */
 module.exports.addIgnoreIP = (ip) => {if (typeof ip === "string" && ip) {IgnoreIps.push(ip);return;}; throw new Error("Invalid IP");}
@@ -32,7 +38,7 @@ async function gen_pool_ips() {
 async function getPoolIP() {
   await new Promise(async res => {
     while (true) {
-      if (!lock) return res();
+      if (!lockLoadips) return res();
       await new Promise(res => setTimeout(res, 1000));
     }
   });
@@ -89,7 +95,6 @@ async function poolGen() {
 }
 poolGen().then(res => {
   wireguardInterface = res.shift();
-  daemon.io.emit("wireguardInterface", wireguardInterface);
   pool = res;
   lockLoadips = false;
 });

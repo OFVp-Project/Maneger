@@ -1,11 +1,10 @@
-const { createServer } = require("http");
+const http = require("http");
 const SocketIo = require("socket.io");
-
-// Create http server and Socket.io
-const Server = createServer();
+const Server = http.createServer();
 Server.listen(5000, () => console.log("Daemon listen in port 5000, dont expose to internet!"));
 const io = new SocketIo.Server(Server);
-io.use((socket, next) => {
+module.exports.io = io;
+io.use(function (socket, next){
   const { PASSWORD, USER } = socket.handshake.auth;
   const { DAEMON_PASSWORD, DAEMON_USER } = process.env;
   if (DAEMON_PASSWORD === undefined || DAEMON_USER === undefined) return next();
@@ -14,7 +13,17 @@ io.use((socket, next) => {
   console.error(`Failed auth to daemon socket.io id: ${socket.id}`);
   return next(new Error("Auth failed"));
 });
-io.on("connection", socket => console.log(`daemon Socket.io connect id: ${socket.id}`));
 
-// Export socket.io
-module.exports.io = io;
+const mongoUser = require("../mongo/v3/users");
+const wireguardip = require("../mongo/v3/WireguardIpmaneger");
+io.on("connection", async socket => {
+  console.log(`daemon Socket.io connect id: ${socket.id}`);
+  socket.emit("wireguardIp", await wireguardip.getWireguardip());
+  socket.emit("usersEncrypt", await mongoUser.getUsers());
+  socket.emit("usersDecrypt", await mongoUser.getUsersDecrypt());
+  mongoUser.on(async ({operationType, fullDocument}) => {
+    socket.emit("userOn", operationType, fullDocument);
+    socket.emit("usersEncrypt", await mongoUser.getUsers());
+    socket.emit("usersDecrypt", await mongoUser.getUsersDecrypt());
+  });
+});

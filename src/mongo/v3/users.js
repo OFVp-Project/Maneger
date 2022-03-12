@@ -3,7 +3,6 @@ const { Connection } = require("../connect");
 const { Schema } = require("mongoose");
 const { DecryptPassword, EncryptPassword } = require("../../PasswordEncrypt");
 const { gen_pool_ips } = require("./WireguardIpmaneger");
-const daemon = require("../../daemon/connect");
 
 const UsersSchema = Connection.model("Users", new Schema({
   // Basic Info
@@ -142,12 +141,17 @@ module.exports.on = on;
  * @param {typeUser} data 
  */
 function onRun(operationType, data) {
-  daemon.io.emit("userOn", operationType, data);
   onChangecallbacks.forEach(callback => callback({
     operationType,
     fullDocument: data
   }));
 }
+
+on(async (operationType, data) => {
+  daemon.io.emit("userOn", operationType, data);
+  socket.emit("usersEncrypt", await getUsers());
+  socket.emit("usersDecrypt", await getUsersDecrypt());
+});
 
 // function to manipulate database
 module.exports.getUsers = getUsers;
@@ -178,6 +182,7 @@ async function getUsersDecrypt() {
   });
 }
 
+const daemon = require("../../daemon/connect");
 daemon.io.on("connection", async socket => {
   console.info(`Sending users to daemon client id ${socket.id}`);
   socket.emit("usersEncrypt", await getUsers());
