@@ -53,9 +53,7 @@ async function authEndpoints(req, res, next) {
     return next();
   }
   if ((await mongo_auth.getAuths()).length === 0) {
-    if (req.path === "/") {
-      if (req.method === "POST") return next();
-    }
+    if (req.method === "POST") return next();
     return res.status(401).json({
       error: "Register fist token"
     });
