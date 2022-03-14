@@ -3,9 +3,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
   release:
     types:
       - released
@@ -13,13 +10,12 @@ on:
 env:
   DOCKERPLATFORM: "linux/amd64,linux/arm64"
   DOCKERIMAGE: "ghcr.io/ofvp-project/deamonmaneger"
-  NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
 
 jobs:
   publishdocker:
     runs-on: ubuntu-latest
     name: Publish Server image
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'release'
+    if: github.event_name == 'push' || github.event_name == 'release'
     steps:
       - uses: actions/checkout@v2.4.0
         with:
@@ -38,29 +34,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Start MongoDB And Export IP
-        if: github.event_name == 'pull_request'
-        id: mongostart
-        run: |
-          docker run --rm --name ofvp_mongodb -d -p 27017:27017 mongo
-          echo "mongodbip=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ofvp_mongodb | sed "s|'||g")" >> $GITHUB_ENV
-          cat $GITHUB_ENV
-
-      - name: Build Docker Image
-        if: steps.mongostart.outcome == 'success'
-        id: dockertestbuild
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: false
-          load: true
-          tags: ${{ env.DOCKERIMAGE }}:local
-          platforms: ${{ env.DOCKERPLATFORM }}
-
-      - name: Up Docker Container
-        if: steps.dockertestbuild.outcome == 'success'
-        run: docker run --rm --name ofvp_server -e MongoDB_URL="mongodb://${{ env.mongodbip }}:27017" -e NODE_ENV="development" -e IS_DEBUG=1 ${{ env.DOCKERIMAGE }}:local
-
       - name: Set Image Build Environment
         run: |
           if [[ "${{ github.event_name }}" == 'release' ]]; then
@@ -72,9 +45,7 @@ jobs:
           fi
           cat $GITHUB_ENV
 
-      - name: Push docker image
-        if: github.event_name == 'push' || github.event_name == 'release'
-        id: pre_build
+      - name: Build and Push image
         uses: docker/build-push-action@v2
         with:
           context: .
