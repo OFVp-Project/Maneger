@@ -54,14 +54,12 @@ jobs:
           context: .
           push: false
           load: true
-          tags: ${{ env.DOCKERIMAGE }}:nightly
+          tags: ${{ env.DOCKERIMAGE }}:local
           platforms: ${{ env.DOCKERPLATFORM }}
-          cache-from: type=gha,scope=${{ hashFiles('**/package-lock.json') }}
-          cache-to: type=gha,mode=max,scope=${{ hashFiles('**/package-lock.json') }}
 
       - name: Up Docker Container
         if: steps.dockertestbuild.outcome == 'success'
-        run: docker run --rm --name ofvp_server -e MongoDB_URL="mongodb://${{ env.mongodbip }}:27017" -e NODE_ENV="development" ${{ env.DOCKERIMAGE }}:nightly --debug
+        run: docker run --rm --name ofvp_server -e MongoDB_URL="mongodb://${{ env.mongodbip }}:27017" -e NODE_ENV="development" -e IS_DEBUG=1 ${{ env.DOCKERIMAGE }}:local
 
       - name: Set Image Build Environment
         run: |
