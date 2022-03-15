@@ -246,7 +246,7 @@ async function registersUser(data) {
   if (data.ssh_connections !== 0) {
     if (!data.ssh_connections) throw new Error("Required ssh_connections to add user");
   }
-  if (data.username.length < 3||data.username.length > 20) throw new Error("Username must be between 3 and 20 characters");
+  if (data.username.length < 3||data.username.length > 32) throw new Error("Username must be between 3 and 32 characters");
   if (data.expire.getTime() < new Date(new Date().getTime() + (1000 * 60 * 60 * 24 * 2)).getTime()) throw new Error("Expire must be less than 2 days");
   if (data.password.length < 8||data.password.length > 16) throw new Error("Password must be between 8 and 16 characters");
   if (data.wireguard_peers < 0) throw new Error("wireguard_peers must be greater than 0");
@@ -260,7 +260,7 @@ async function registersUser(data) {
     wireguard: []
   };
   if (data.wireguard_peers > 0) {
-    const IpPool = (await gen_pool_ips()).slice(0, data.wireguard_peers);
+    const IpPool = (await gen_pool_ips(data.wireguard_peers))
     for (let i = 0; i < data.wireguard_peers; i++) {
       Data.wireguard.push({
         keys: CreateWireguardKeys(),

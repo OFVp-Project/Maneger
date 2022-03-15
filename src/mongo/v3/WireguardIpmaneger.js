@@ -24,15 +24,17 @@ module.exports.getWireguardip = async () => {
 /** @param {string} ip IPv4  @returns {void} */
 module.exports.addIgnoreIP = (ip) => {if (typeof ip === "string" && ip) {IgnoreIps.push(ip);return;}; throw new Error("Invalid IP");}
 module.exports.gen_pool_ips = gen_pool_ips;
-async function gen_pool_ips() {
+async function gen_pool_ips(PoolNumber = 1) {
   const Users = (await mongo_user.getUsers()).map(User => User.wireguard).reduce((previousValue, currentValue) => currentValue.concat(previousValue), []).map(a => a.ip);
   const IP_Pool = await getPoolIP();
   if (IP_Pool.length === 0) throw new Error("No ip avaibles");
-  return IP_Pool.filter(Ip => {
-    if (Users.find(User => User.v4.ip === Ip.v4.ip)) return false;
-    if (IgnoreIps.find(User => User === Ip.v4.ip)) return false;
-    return true;
-  });
+  const NewPool = [];
+  for (let index = 0; index < PoolNumber; index++) {
+    const ip = IP_Pool.filter(Ip => {if (Users.find(User => User.v4.ip === Ip.v4.ip)) return false; if (IgnoreIps.find(User => User === Ip.v4.ip)) return false; return true;})[Math.floor(Math.random() * IgnoreIps.length+1)]
+    IgnoreIps.push(ip.v4.ip);
+    NewPool.push(ip);
+  }
+  return NewPool;
 }
 
 async function getPoolIP() {

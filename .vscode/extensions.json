@@ -24,6 +24,7 @@
     "eamodio.gitlens",
     "mongodb.mongodb-vscode",
     "ms-azuretools.vscode-docker",
-    "bradlc.vscode-tailwindcss"
+    "bradlc.vscode-tailwindcss",
+    "chrmarti.regex"
   ]
 }

@@ -4,7 +4,7 @@ module.exports.postBuffer = postBuffer;
 /**
  * Fetch with method GET
  * @param {string} url 
- * @returns {Promise<Buffer>}
+ * @returns {Promise<{data: Buffer; headers: Headers;}>}
  */
 async function getBuffer(url) {
   const NodeFetch = (await import("node-fetch")).default;
@@ -25,7 +25,7 @@ async function getBuffer(url) {
  * 
  * @param {string} url 
  * @param {Array|Object} body 
- * @returns {Promise<Buffer>}
+ * @returns {Promise<{data: Buffer; headers: Headers;}>}
  */
 async function postBuffer(url, body) {
   const NodeFetch = (await import("node-fetch")).default;
