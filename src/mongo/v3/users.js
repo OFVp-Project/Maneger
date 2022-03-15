@@ -149,8 +149,8 @@ function onRun(operationType, data) {
 
 on(async (operationType, data) => {
   daemon.io.emit("userOn", operationType, data);
-  socket.emit("usersEncrypt", await getUsers());
-  socket.emit("usersDecrypt", await getUsersDecrypt());
+  daemon.io.emit("usersEncrypt", await getUsers());
+  daemon.io.emit("usersDecrypt", await getUsersDecrypt());
 });
 
 // function to manipulate database

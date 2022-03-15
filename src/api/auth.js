@@ -48,7 +48,7 @@ async function authEndpoints(req, res, next) {
       return false;
     }
   }
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing") {
     console.info("Auth baypassed, req ip:", req.ip);
     return next();
   }

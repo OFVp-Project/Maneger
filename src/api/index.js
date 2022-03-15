@@ -15,7 +15,8 @@ module.exports.io = io;
 const BodyParse = require("body-parser");
 const cors = require("cors");
 const ExpressSession = require("express-session");
-const connect_mongodb_session = require("connect-mongodb-session");
+const MongoStore = require('connect-mongo');
+
 app.use(cors());
 app.use(BodyParse.urlencoded({extended: true}));
 app.use(BodyParse.json());
@@ -42,26 +43,30 @@ app.use((req, res, next) => {
 if (!process.env.COOKIE_SECRET) throw new Error("COOKIE_SECRET is not defined");
 app.use(ExpressSession({
   secret: process.env.COOKIE_SECRET,
+  name: "ofvp_session",
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: false,
-    maxAge: (1000 * 60 * 60 * 24 * 30 * 325),
+    secure: "auto",
+    maxAge: (1000 * 60 * 60 * 24 * 30),
   },
-  store: new (connect_mongodb_session(ExpressSession))({
-    uri: `${process.env.MongoDB_URL}/OFVpServer`,
-    collection: "CookieSessions"
+  store: MongoStore.create({
+    mongoUrl: `${process.env.MongoDB_URL}/OFVpServer`,
+    collectionName: "CookieSessions",
+    // autoRemove: "disabled",
+    autoRemove: "native",
+    crypto: {
+      secret: (process.env.PASSWORD_ENCRYPT||"").trim()
+    }
   })
 }));
 
 // API routes
 const { checkAuth } = require("../mongo/v3/auth");
 const userAuth = require("./auth");
-const RateLimit = (require("express-rate-limit")).default({
-  windowMs: 1*60*1000, // 1 minute
-  max: 5
-});
-app.post("/login", RateLimit, async (req, res) => {
+const RateLimit = (require("express-rate-limit")).default;
+app.post("/login", RateLimit({windowMs: 1*60*1000, max: 5}), async (req, res) => {
   const { Email, Password, redirect: Redirect } = req.body;
   var ConnectedStatus = false;
   try {
@@ -98,7 +103,7 @@ app.use("/users", ({res}) => res.status(400).json({message: "set endpoint versio
 
 // Auth
 const authV3 = require("./v3/auth");
-app.use("/auth/v3", userAuth.authEndpoints, authV3.app);
+app.use("/auth/v3", userAuth.authEndpoints, RateLimit({windowMs: 60*1000, max: 10, skip: true}), authV3.app);
 app.use("/auth", ({res}) => res.status(400).json({message: "set endpoint version, check wiki: https://github.com/OFVp-Project/DeamonManeger/wiki/Auth"}));
 
 // Backend get errors and send to client.

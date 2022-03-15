@@ -12,7 +12,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: Publish Server image
+    name: Test docker image and Endpoints
     steps:
       - uses: actions/checkout@v2.4.0
         with:
@@ -23,6 +23,14 @@ jobs:
 
       - name: Setup Buildx
         uses: docker/setup-buildx-action@v1
+
+      - name: Setup Node.JS and NPM
+        uses: actions/setup-node@v3.0.0
+        with:
+          node-version: 16.x
+
+      - name: Install node packages
+        run: npm install
 
       - name: Start MongoDB And Export IP
         run: |
@@ -39,5 +47,12 @@ jobs:
           load: true
 
       - name: Up Docker Container
-        if: steps.dockertestbuild.outcome == 'success'
-        run: docker run --rm --name ofvp_server -e MongoDB_URL="mongodb://${{ env.mongodbip }}:27017" -e NODE_ENV="development" -e IS_DEBUG=1 ${{ env.DOCKERIMAGE }}:local
+        run: |
+          docker run --net=host --name=daemon_ofvp -e PASSWORD_ENCRYPT="dev" -e COOKIE_SECRET="dev" -e MongoDB_URL="mongodb://${{ env.mongodbip }}:27017" -e NODE_ENV="testing" ${{ env.DOCKERIMAGE }}:local &
+          while true; do
+            if docker logs daemon_ofvp | grep -q "3000"; then exit 0; fi
+            sleep 1
+          done
+
+      - name: Run Test requests
+        run: node test/index.js

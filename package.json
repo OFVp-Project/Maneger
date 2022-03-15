@@ -3,7 +3,28 @@
   "version": "4.0.1",
   "description": "daemon for managing and communicating with other servers.",
   "main": "src/index.js",
-  "scripts": {},
+  "scripts": {
+    "dev": "nodemon"
+  },
+  "nodemonConfig": {
+    "delay": 2500,
+    "ext": "json,js",
+    "watch": [
+      "src/*",
+      "package.json",
+      "package-lock.json",
+      "Dockerfile",
+      "docker-compose.yml"
+    ],
+    "env": {
+      "MongoDB_URL": "mongodb://localhost:27017",
+      "NODE_ENV": "development",
+      "COOKIE_SECRET": "dev",
+      "PASSWORD_ENCRYPT": "aaaaa",
+      "DAEMON_PASSWORD": "",
+      "DAEMON_USER": ""
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OFVp-Project/DeamonManeger.git"
@@ -20,7 +41,7 @@
   "homepage": "https://github.com/OFVp-Project/DeamonManeger#readme",
   "dependencies": {
     "body-parser": "^1.19.2",
-    "connect-mongodb-session": "^3.1.1",
+    "connect-mongo": "^4.6.0",
     "cors": "^2.8.5",
     "cron": "^1.8.2",
     "express": "^4.17.3",
@@ -32,5 +53,9 @@
     "netmask": "^2.0.2",
     "qrcode": "^1.5.0",
     "socket.io": "^4.4.1"
+  },
+  "devDependencies": {
+    "node-fetch": "^3.2.3",
+    "nodemon": "^2.0.15"
   }
 }

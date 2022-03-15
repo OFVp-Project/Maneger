@@ -32,7 +32,7 @@ app.post("/update_privilegie", async (req, res) => {
   if (!auth) return res.status(400).json({
     message: "Auth not found"
   });
-  const data = await mongo_v3_auth.update_privilegie(email, privilege);
+  const data = await mongo_v3_auth.update_privilegie(email, privilege === "root" ? "root" : "user");
   if (data === "no update") return res.status(400).json({
     message: "no update"
   });

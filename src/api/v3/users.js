@@ -61,6 +61,9 @@ app.post("/", async (req, res) => {
     });
   }
   if (ErrorInputs.length > 0) return res.status(400).json({ error: ErrorInputs });
+  if (username.trim() === "root") return res.status(400).json({
+    message: "not allowed to root"
+  });
   if (await mongoUser.findOne(username)) return res.status(400).json({ error: "User already exists" });
   return res.json(await mongoUser.registersUser({
     username: username,
