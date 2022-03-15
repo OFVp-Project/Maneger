@@ -48,10 +48,7 @@ async function authEndpoints(req, res, next) {
       return false;
     }
   }
-  if (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing") {
-    console.info("Auth baypassed, req ip:", req.ip);
-    return next();
-  }
+  if (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing") return next();
   if ((await mongo_auth.getAuths()).length === 0) {
     if (req.method === "POST") return next();
     return res.status(401).json({

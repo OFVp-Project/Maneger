@@ -1,7 +1,8 @@
-const { MongoDB_URL } = process.env;
+let { MongoDB_URL } = process.env;
 if (!MongoDB_URL) throw new Error("Invalid MongoDB URL");
+if (!/:\/\/.*\//.test(MongoDB_URL)) MongoDB_URL = MongoDB_URL+"/OFVpServer";
 const Mongoose = require("mongoose");
-const Connection = Mongoose.createConnection(`${MongoDB_URL}/OFVpServer`);
+const Connection = Mongoose.createConnection(MongoDB_URL);
 module.exports.Connection = Connection;
 /**
  * @type {Status: "Connecting"|"Connected"|"Error"; Error: null|Error;}
