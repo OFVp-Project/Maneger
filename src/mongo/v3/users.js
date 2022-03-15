@@ -161,7 +161,7 @@ module.exports.getUsers = getUsers;
  */
 async function getUsers() {
   /** @type {Array<typeUser>} */
-  const data = await UsersSchema.find({}).lean();
+  const data = await UsersSchema.find().lean();
   return data.map(user => {
     user.expire = new Date(user.expire);
     return user;
@@ -185,8 +185,10 @@ async function getUsersDecrypt() {
 const daemon = require("../../daemon/connect");
 daemon.io.on("connection", async socket => {
   console.info(`Sending users to daemon client id ${socket.id}`);
-  socket.emit("usersEncrypt", await getUsers());
-  socket.emit("usersDecrypt", await getUsersDecrypt());
+  const enUsers = await getUsers(), deUsers = await getUsersDecrypt();
+  console.log(enUsers, deUsers);
+  socket.emit("usersEncrypt", enUsers);
+  socket.emit("usersDecrypt", deUsers);
 });
 
 module.exports.findOne = findOne;
@@ -197,8 +199,7 @@ module.exports.findOne = findOne;
  */
 async function findOne(username) {
   if (!username) throw new Error("Required username to find user");
-  const userData = (await getUsers()).find(user => user.username === username);
-  return userData;
+  return (await getUsers()).find(user => user.username === username);
 }
 
 module.exports.CreateWireguardKeys = CreateWireguardKeys;
@@ -248,7 +249,7 @@ async function registersUser(data) {
   }
   if (data.username.length < 3||data.username.length > 32) throw new Error("Username must be between 3 and 32 characters");
   if (data.expire.getTime() < new Date(new Date().getTime() + (1000 * 60 * 60 * 24 * 2)).getTime()) throw new Error("Expire must be less than 2 days");
-  if (data.password.length < 8||data.password.length > 16) throw new Error("Password must be between 8 and 16 characters");
+  if (data.password.length < 8||data.password.length > 32) throw new Error("Password must be between 8 and 32 characters");
   if (data.wireguard_peers < 0) throw new Error("wireguard_peers must be greater than 0");
   if (data.ssh_connections < 0) throw new Error("ssh_connections must be greater than 0");
   if (await findOne(data.username)) throw new Error("Username already exists");
@@ -296,7 +297,7 @@ module.exports.updatePassword = updatePassword;
 async function updatePassword(Username, NewPassword) {
   if (!Username) throw new Error("Required username to update password");
   if (!NewPassword) throw new Error("Required new password to update password");
-  if (NewPassword.length < 8||NewPassword.length > 16) throw new Error("Password must be between 8 and 16 characters");
+  if (NewPassword.length < 8||NewPassword.length > 32) throw new Error("Password must be between 8 and 32 characters");
   const userData = await findOne(Username);
   if (!userData) throw new Error("User not found");
   userData.password = EncryptPassword(NewPassword);

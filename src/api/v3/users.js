@@ -11,14 +11,10 @@ const qrCodeCreate = promisify(qrCode.toBuffer);
 const mongoUser = require("../../mongo/v3/users");
 app.get("/", async ({res}) => res.json(await mongoUser.getUsers()));
 app.post("/delete", async (req, res) => {
-  const user = await mongoUser.findOne(req.body.username);
-  if (!user) return res.status(400).json({
-    message: "User no found."
-  });
-  mongoUser.deleteUser(user.username);
+  mongoUser.deleteUser(req.body.username);
   return res.json({
-    message: `Success to remove "${user.username}"`,
-    data: user
+    message: "Success to remove",
+    // data: user
   });
 });
 app.post("/", async (req, res) => {

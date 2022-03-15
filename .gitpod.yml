@@ -1,16 +1,23 @@
 #image: ghcr.io/ofvp-project/devcontainer
 tasks:
-  - init: npm install
+  - command: npm install
+  - command: docker run -d -p 27017:27017/tcp mongo
 ports:
-  - port: 3000
+  - name: OFVp API
+    description: API to maneger Users and auth
+    port: 3000
     visibility: public
+    onOpen: notify
+  - port: 5000
+    onOpen: ignore
+  - port: 27017
+    onOpen: ignore
 vscode:
   extensions:
     - "akamud.vscode-theme-onedark"
     - "formulahendry.auto-rename-tag"
     - "hookyqr.beautify"
     - "aaron-bond.better-comments"
-    - "oouo-diogo-perdigao.docthis"
     - "dbaeumer.vscode-eslint"
     - "oderwat.indent-rainbow"
     - "eg2.vscode-npm-script"

@@ -54,5 +54,17 @@ jobs:
             sleep 1
           done
 
-      - name: Run Test requests
-        run: node test/index.js
+      - name: Run Test requests (10)
+        run: REQUESTS=10 node test/index.js
+
+      - name: Run Test requests (25)
+        run: REQUESTS=25 node test/index.js
+
+      - name: Run Test requests (40)
+        run: REQUESTS=40 node test/index.js
+
+      - name: Run Test requests (500)
+        run: REQUESTS=500 node test/index.js
+
+      - name: Run Test requests (1000)
+        run: REQUESTS=1000 node test/index.js
