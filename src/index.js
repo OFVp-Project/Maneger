@@ -13,11 +13,4 @@ global.console = new Console.Console({
   console.log("Sucess to connect in database");
   require("./daemon/connect");
   require("./api/index");
-  if (process.env.NODE_ENV === "testing") {
-    console.log("Testing enabled");
-    setTimeout(() => {
-      console.log("Testing exit");
-      process.exit(0);
-    }, 1000 * 60 * 5);
-  }
 })();

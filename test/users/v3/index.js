@@ -11,18 +11,14 @@ async function CreateRequest(Username){
     ssh_connections: 0,
     wireguard_peers: 1
   }).then(res => JSON.parse(res.data.toString("utf8")));
-  const wireguardConfig = {
-    json: (await http_requests.getBuffer(`http://localhost:3000/users/v3/Wireguard/json/${User.username}`)).data.toString(),
-    yaml: (await http_requests.getBuffer(`http://localhost:3000/users/v3/Wireguard/yaml/${User.username}`)).data.toString(),
-    wireguard: (await http_requests.getBuffer(`http://localhost:3000/users/v3/Wireguard/wireguard/${User.username}`)).data.toString(),
-    openwrt_18: (await http_requests.getBuffer(`http://localhost:3000/users/v3/Wireguard/openwrt18/${User.username}`)).data.toString()
-  };
-  await http_requests.postBuffer("http://localhost:3000/users/v3/delete", {
-    username: User.username
-  });
+  await Promise.all([
+    await http_requests.getBuffer(`http://localhost:3000/users/v3/Wireguard/json/${User.username}`),
+    await http_requests.getBuffer(`http://localhost:3000/users/v3/Wireguard/yaml/${User.username}`),
+    await http_requests.getBuffer(`http://localhost:3000/users/v3/Wireguard/wireguard/${User.username}`),
+    await http_requests.getBuffer(`http://localhost:3000/users/v3/Wireguard/openwrt18/${User.username}`)
+  ]);
+  await http_requests.postBuffer("http://localhost:3000/users/v3/delete", {username: User.username});
   console.log("Passing:", User.username);
-  console.log("Wireguard Config:", JSON.stringify(wireguardConfig, null, 2));
-  console.log("Storage Config:", JSON.stringify(User));
 }
 
 (function(){

@@ -5,7 +5,7 @@ const { Netmask } = require("netmask");
 /** @type {{v4: {ip: string; mask: string;}; v6: {ip: string; mask: string;};}} */
 const typeIps = {v4: {ip: "", mask: ""}, v6: {ip: "", mask: ""}}
 
-const IgnoreIps = [];
+let IgnoreIps = [];
 /** @type {Array<typeIps>} */
 let pool = [];
 /** @type {typeIps} */
@@ -21,6 +21,11 @@ module.exports.getWireguardip = async () => {
   return wireguardInterface;
 }
 
+const FilterUse = async () => {
+  const Users = await mongo_user.getUsers();
+  return IgnoreIps = IgnoreIps.filter(ip => Users.find(user => user.wireguard.find(ip2 => ip2.ip.v4.ip === ip)));
+}
+
 /** @param {string} ip IPv4  @returns {void} */
 module.exports.addIgnoreIP = (ip) => {if (typeof ip === "string" && ip) {IgnoreIps.push(ip);return;}; throw new Error("Invalid IP");}
 module.exports.gen_pool_ips = gen_pool_ips;
@@ -30,10 +35,11 @@ async function gen_pool_ips(PoolNumber = 1) {
   if (IP_Pool.length === 0) throw new Error("No ip avaibles");
   const NewPool = [];
   for (let index = 0; index < PoolNumber; index++) {
-    const ip = IP_Pool.filter(Ip => {if (Users.find(User => User.v4.ip === Ip.v4.ip)) return false; if (IgnoreIps.find(User => User === Ip.v4.ip)) return false; return true;})[Math.floor(Math.random() * IgnoreIps.length+1)]
+    const ip = IP_Pool.filter(Ip => !(Users.find(User => User.v4.ip === Ip.v4.ip)||IgnoreIps.find(User => User === Ip.v4.ip)))[Math.floor(Math.random()+Math.random() * (IgnoreIps.length+1))]
     IgnoreIps.push(ip.v4.ip);
     NewPool.push(ip);
   }
+  FilterUse();
   return NewPool;
 }
 

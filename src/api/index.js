@@ -41,6 +41,8 @@ app.use((req, res, next) => {
   });
 });
 if (!process.env.COOKIE_SECRET) throw new Error("COOKIE_SECRET is not defined");
+let { MongoDB_URL } = process.env;
+if (!/:\/\/.*\//.test(MongoDB_URL)) MongoDB_URL = MongoDB_URL+"/OFVpServer";
 app.use(ExpressSession({
   secret: process.env.COOKIE_SECRET,
   name: "ofvp_session",
@@ -52,7 +54,7 @@ app.use(ExpressSession({
     maxAge: (1000 * 60 * 60 * 24 * 30),
   },
   store: MongoStore.create({
-    mongoUrl: `${process.env.MongoDB_URL}/OFVpServer`,
+    mongoUrl: MongoDB_URL,
     collectionName: "CookieSessions",
     // autoRemove: "disabled",
     autoRemove: "native",
