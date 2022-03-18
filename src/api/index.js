@@ -65,7 +65,7 @@ app.use(ExpressSession({
 }));
 
 // API routes
-const { checkAuth } = require("../mongo/v3/auth");
+const { checkAuth } = require("../mongo/Schemas/auth");
 const userAuth = require("./auth");
 const RateLimit = (require("express-rate-limit")).default;
 app.post("/login", RateLimit({windowMs: 1*60*1000, max: 5}), async (req, res) => {

@@ -9,9 +9,6 @@ on:
   schedule:
     - cron: "26 8 * * 1"
 
-env:
-  NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
-
 jobs:
   snyk:
     runs-on: ubuntu-latest

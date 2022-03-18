@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express.Router();
 module.exports.app = app;
-const mongo_v3_auth = require("../../mongo/v3/auth");
+const mongo_v3_auth = require("../../mongo/Schemas/auth");
 
 app.post("/register", async (req, res) => {
   /** @type {{email: string; password: string;}} */

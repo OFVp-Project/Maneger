@@ -1,9 +1,6 @@
-const crypto = require("crypto");
-const http_requests = require("../../http_request");
-const reqNumber = (process.env.REQUESTS||10);
+const http_requests = require("../http_request");
 
 async function CreateRequest(Username){
-  console.log("Testing with username:", Username);
   const User = await http_requests.postBuffer("http://localhost:3000/users/v3", {
     username: Username,
     password: "aaaaaaaa14",
@@ -18,11 +15,11 @@ async function CreateRequest(Username){
     await http_requests.getBuffer(`http://localhost:3000/users/v3/Wireguard/openwrt18/${User.username}`)
   ]);
   await http_requests.postBuffer("http://localhost:3000/users/v3/delete", {username: User.username});
-  console.log("Passing:", User.username);
+  return User;
 }
 
 /**
  * @param {Array<string>} Users 
  * @returns {Promise<any>}
  */
-module.exports.main = Users => Users.map(data => CreateRequest(data));
+module.exports.main = Users => Promise.all(Users.map(data => CreateRequest(data)));

@@ -1,72 +1,40 @@
 const express = require("express");
 const app = express.Router();
 module.exports.app = app;
-const { wireguardInterfaceConfig } = require("../../daemon/connect");
-const { getWireguardip } = require("../../mongo/v3/WireguardIpmaneger");
 const qrCode = require("qrcode");
 const js_yaml = require("js-yaml");
 const { promisify } = require("util");
 const qrCodeCreate = promisify(qrCode.toBuffer);
-const mongoUser = require("../../mongo/v3/users");
+const mongoUser = require("../../mongo/Schemas/users");
+const { wireguardInterfaceConfig } = require("../../daemon/connect");
+const { getWireguardip } = require("../../mongo/Schemas/WireguardIpmaneger");
 
-app.get("/", async ({res}) => res.json(await mongoUser.getUsers()));
-app.post("/deleteOne", async (req, res) => {
-  mongoUser.deleteUser(req.body.username);
-  return res.json({
-    message: "Success to remove",
-    // data: user
-  });
-});
-app.post("/deleteArray", async (req, res) => {
-  /** @type {Array<string>} */
-  const UsersToDelete = req.body.Users;
-  if (!(typeof UsersToDelete === "object" && typeof UsersToDelete.map === "function")) return res.status(400).json({message: "Allow Array with users string"});
-  if (UsersToDelete.find(Test => typeof Test !== "string")) return res.status(400).json({message: "Allow Array with users string"});
-  return res.json(await mongoUser.deleteUsers(UsersToDelete));
+app.get("/", async (req, res) => res.json(await (req.query.password==="decrypt" ?  mongoUser.getUsersDecrypt() : mongoUser.getUsers())));
+app.post("/delete", async (req, res) => {
+  await mongoUser.deleteUser(req.body.username);
+  return res.json({message: "Success to remove"});
 });
 app.post("/", async (req, res) => {
+  /** @type {{username: string; password: string; date_to_expire: string; ssh_connections: number|string; wireguard_peers: number|string;}} */
   const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req.body;
   const ErrorInputs = [];
-  if (!username) ErrorInputs.push({
-    parameter: "username",
-    message: "Username is required"
-  });
-  if (!password) ErrorInputs.push({
-    parameter: "password",
-    message: "Password is required"
-  });
-  if (!date_to_expire) ErrorInputs.push({
-    parameter: "date_to_expire",
-    message: "Date to expire is required"
-  });
+  if (!username) ErrorInputs.push({parameter: "username", message: "Username is required"});
+  if (!password) ErrorInputs.push({parameter: "password", message: "Password is required"});
+  if (!date_to_expire) ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is required"});
   if (date_to_expire) {
     const UserDate = new Date(date_to_expire);
     const futureDate = new Date(new Date().getTime() + (1000 * 60 * 60 * 24 * 2));
-    if (UserDate.toString() === "Invalid Date") ErrorInputs.push({
-      parameter: "date_to_expire",
-      message: "Date to expire is invalid, please use YYYY-MM-DD or javascript Date object"
-    });
-    else if (UserDate.getTime() <= futureDate.getTime()) ErrorInputs.push({
-      parameter: "date_to_expire",
-      message: "Date to expire is in the future, date input: "+UserDate.toString()+", min require date: "+futureDate.toString()
-    });
+    if (UserDate.toString() === "Invalid Date") ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is invalid, please use YYYY-MM-DD or javascript Date object"});
+    else if (UserDate.getTime() <= futureDate.getTime()) ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is in the future, date input: "+UserDate.toString()+", min require date: "+futureDate.toString()});
   }
   if (parseInt(ssh_connections) !== 0) {
-    if (isNaN(parseInt(ssh_connections))) ErrorInputs.push({
-      parameter: "ssh_connections",
-      message: "Ssh connections is required"
-    });
+    if (isNaN(parseInt(ssh_connections))) ErrorInputs.push({parameter: "ssh_connections", message: "Ssh connections is required"});
   }
   if (parseInt(wireguard_peers) !== 0) {
-    if (isNaN(parseInt(wireguard_peers))) ErrorInputs.push({
-      parameter: "wireguard_peers",
-      message: "Count to get keys and ips to wireguard"
-    });
+    if (isNaN(parseInt(wireguard_peers))) ErrorInputs.push({parameter: "wireguard_peers", message: "Count to get keys and ips to wireguard"});
   }
+  if (username.trim().toLowerCase() === "root") return res.status(400).json({message: "not allowed to root username"});
   if (ErrorInputs.length > 0) return res.status(400).json({ error: ErrorInputs });
-  if (username.trim() === "root") return res.status(400).json({
-    message: "not allowed to root"
-  });
   if (await mongoUser.findOne(username)) return res.status(400).json({ error: "User already exists" });
   return res.json(await mongoUser.registersUser({
     username: username,

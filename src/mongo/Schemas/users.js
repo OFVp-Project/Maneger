@@ -2,7 +2,7 @@ const crypto = require("crypto");
 const { Connection } = require("../connect");
 const { Schema } = require("mongoose");
 const { DecryptPassword, EncryptPassword } = require("../../PasswordEncrypt");
-const { gen_pool_ips } = require("./WireguardIpmaneger");
+const { gen_pool_ips, getWireguardip } = require("./WireguardIpmaneger");
 
 const UsersSchema = Connection.model("Users", new Schema({
   // Basic Info
@@ -321,4 +321,43 @@ async function updatePassword(Username, NewPassword) {
   await UsersSchema.updateOne({username: userData.username}, userData);
   onRun("update", userData);
   return;
+}
+
+module.exports.getWireguardconfig = getWireguardconfig;
+/**
+ * 
+ * @param {string} Username 
+ * @param {number} wireguardKey 
+ */
+async function getWireguardconfig(Username, wireguardKey) {
+  const ClientwireguardPeer = (await findOne(Username)).wireguard[wireguardKey];
+  const WireguardServer = {
+    ip: await getWireguardip(),
+    keys: daemon.wireguardInterfaceConfig()
+  }
+  const ConfigUserInJson = {
+    Interface: {
+      PrivateKey: ClientwireguardPeer.keys.Private,
+      Address: [
+        `${ClientwireguardPeer.ip.v4.ip}/${ClientwireguardPeer.ip.v4.mask}`,
+        `${ClientwireguardPeer.ip.v6.ip}/${ClientwireguardPeer.ip.v6.mask}`
+      ],
+      DNS: [
+        "8.8.8.8",
+        "1.1.1.1",
+        "8.8.4.4",
+        "1.0.0.1"
+      ],
+    },
+    Peer: {
+      PublicKey: String(WireguardServer.keys.Public),
+      PresharedKey: String(ClientwireguardPeer.keys.Preshared),
+      Endpoint: `${endpoint}:${req.query.port||"51820"}`,
+      AllowedIPs: [
+        "0.0.0.0/0",
+        "::0/0"
+      ]
+    }
+  };
+  return {WireguardServer, ConfigUserInJson};
 }

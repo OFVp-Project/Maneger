@@ -1,18 +1,15 @@
-name: Test docker image
+name: Test requests
 on:
-  push:
-    branches:
-      - main
   pull_request:
-
-env:
-  DOCKERPLATFORM: "linux/amd64,linux/arm64"
-  DOCKERIMAGE: "ghcr.io/ofvp-project/deamonmaneger"
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: Test docker image and Endpoints
+    name: Test docker build and Endpoints
+    strategy:
+      fail-fast: false
+      matrix:
+        REQUETS: [10, 50, 500, 1000] 
     steps:
       - uses: actions/checkout@v2.4.0
         with:
@@ -42,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          tags: ${{ env.DOCKERIMAGE }}:local
+          tags: ghcr.io/ofvp-project/deamonmaneger:local
           push: false
           load: true
 
@@ -53,28 +50,13 @@ jobs:
           MongoDB_URL: "mongodb://${{ env.mongodbip }}:27017" 
           NODE_ENV: "testing"
         run: |
-          docker run --net=host --name=daemon_ofvp -e PASSWORD_ENCRYPT -e COOKIE_SECRET -e MongoDB_URL -e NODE_ENV ${{ env.DOCKERIMAGE }}:local &
+          docker run --net=host --name=daemon_ofvp -e PASSWORD_ENCRYPT -e COOKIE_SECRET -e MongoDB_URL -e NODE_ENV ghcr.io/ofvp-project/deamonmaneger:local &
           while true; do
             if docker logs daemon_ofvp | grep -q "3000"; then exit 0; fi
             sleep 1
           done
 
-      - name: Run Test requests (10)
+      - name: Run Test requests (${{ matrix.REQUETS }})
         env:
-          REQUESTS: 10
-        run: node test/index.js || (docker logs daemon_ofvp && exit 1)
-
-      - name: Run Test requests (50)
-        env:
-          REQUESTS: 50
-        run: node test/index.js || (docker logs daemon_ofvp && exit 1)
-
-      - name: Run Test requests (500)
-        env:
-          REQUESTS: 500
-        run: node test/index.js || (docker logs daemon_ofvp && exit 1)
-
-      - name: Run Test requests (1000)
-        env:
-          REQUESTS: 1000
+          REQUESTS: ${{ matrix.REQUETS }}
         run: node test/index.js || (docker logs daemon_ofvp && exit 1)

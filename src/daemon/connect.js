@@ -16,8 +16,8 @@ io.use(function (socket, next){
   return next(new Error("Auth failed"));
 });
 
-const mongoUser = require("../mongo/v3/users");
-const wireguardip = require("../mongo/v3/WireguardIpmaneger");
+const mongoUser = require("../mongo/Schemas/users");
+const wireguardip = require("../mongo/Schemas/WireguardIpmaneger");
 
 /**
  * Get wireguard interface key

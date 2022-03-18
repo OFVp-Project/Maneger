@@ -1,5 +1,5 @@
 const express = require("express");
-const mongo_auth = require("../mongo/v3/auth");
+const mongo_auth = require("../mongo/Schemas/auth");
 const { DecryptPassword } = require("../PasswordEncrypt");
 
 module.exports.authEndpoints = authEndpoints;
