@@ -1,4 +1,4 @@
-const crypto = require("crypto");
+const crypto = require("crypto"), path = require("path"), fs = require("fs");
 const { Connection } = require("../connect");
 const { Schema } = require("mongoose");
 const { DecryptPassword, EncryptPassword } = require("../../PasswordEncrypt");
@@ -158,6 +158,12 @@ async function getUsers() {
   const data = await UsersSchema.find().lean();
   return data.map(user => {
     user.expire = new Date(user.expire);
+    delete user["_id"];
+    delete user["__v"];
+    user.wireguard = user.wireguard.map(Peer => {
+      delete Peer["_id"];
+      return Peer;
+    })
     return user;
   });
 }
@@ -323,25 +329,49 @@ async function updatePassword(Username, NewPassword) {
   return;
 }
 
+/**
+ * Get wireguard interface key
+ * @returns {{Preshared: string; Private: string; Public: string;}}
+ */
+function wireguardInterfaceConfig() {
+  const storage = process.env.NODE_ENV === "development"? process.cwd():"/data";
+  if (fs.existsSync(path.resolve(storage, "wireguardInterface.json"))) return JSON.parse(fs.readFileSync(path.resolve(storage, "wireguardInterface.json"), "utf8"));
+  const keys = mongoUser.CreateWireguardKeys();
+  fs.writeFileSync(path.resolve(storage, "wireguardInterface.json"), JSON.stringify(keys, null, 2));
+  return keys;
+}
+
 module.exports.getWireguardconfig = getWireguardconfig;
 /**
+ * Create JSON with Interface config to User.
+ * @param {string} Username - Username
+ * @param {number} wireguardKey - Number to key index example: `0`
+ * @param {string} host - host to Wireguard server with port
  * 
- * @param {string} Username 
- * @param {number} wireguardKey 
+ * @returns {Promise<{
+ *   Interface: {
+ *     PrivateKey: string;
+ *     Address: Array<{ip: string; mask: string;}>
+ *     DNS: Array<string>;
+ *   };
+ *   Peer: {
+ *     PublicKey: string;
+ *     PresharedKey: string;
+ *     Endpoint: string;
+ *     Port: number;
+ *     AllowedIPs: Array<string>
+ *   };
+ * }>}
  */
-async function getWireguardconfig(Username, wireguardKey) {
-  const ClientwireguardPeer = (await findOne(Username)).wireguard[wireguardKey];
-  const WireguardServer = {
-    ip: await getWireguardip(),
-    keys: daemon.wireguardInterfaceConfig()
-  }
-  const ConfigUserInJson = {
+async function getWireguardconfig(Username, wireguardKey = 0, host, port = 51820) {
+  const WireguardKeys = (await findOne(Username)).wireguard;
+  if (WireguardKeys.length === 0) throw new Error("No keys avaible");
+  const ClientwireguardPeer = WireguardKeys[wireguardKey];
+  const WireguardServer = {ip: await getWireguardip(), keys: wireguardInterfaceConfig()};
+  return {
     Interface: {
       PrivateKey: ClientwireguardPeer.keys.Private,
-      Address: [
-        `${ClientwireguardPeer.ip.v4.ip}/${ClientwireguardPeer.ip.v4.mask}`,
-        `${ClientwireguardPeer.ip.v6.ip}/${ClientwireguardPeer.ip.v6.mask}`
-      ],
+      Address: [ClientwireguardPeer.ip.v4, ClientwireguardPeer.ip.v6],
       DNS: [
         "8.8.8.8",
         "1.1.1.1",
@@ -350,14 +380,14 @@ async function getWireguardconfig(Username, wireguardKey) {
       ],
     },
     Peer: {
-      PublicKey: String(WireguardServer.keys.Public),
-      PresharedKey: String(ClientwireguardPeer.keys.Preshared),
-      Endpoint: `${endpoint}:${req.query.port||"51820"}`,
+      PublicKey: WireguardServer.keys.Public,
+      PresharedKey: ClientwireguardPeer.keys.Preshared,
+      Endpoint: host,
+      Port: parseInt(port),
       AllowedIPs: [
         "0.0.0.0/0",
         "::0/0"
       ]
     }
   };
-  return {WireguardServer, ConfigUserInJson};
 }

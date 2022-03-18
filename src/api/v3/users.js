@@ -6,10 +6,9 @@ const js_yaml = require("js-yaml");
 const { promisify } = require("util");
 const qrCodeCreate = promisify(qrCode.toBuffer);
 const mongoUser = require("../../mongo/Schemas/users");
-const { wireguardInterfaceConfig } = require("../../daemon/connect");
-const { getWireguardip } = require("../../mongo/Schemas/WireguardIpmaneger");
 
-app.get("/", async (req, res) => res.json(await (req.query.password==="decrypt" ?  mongoUser.getUsersDecrypt() : mongoUser.getUsers())));
+app.get(["/Users", "/"], async ({res}) => res.json(await mongoUser.getUsers()));
+app.get("/Users/:User", async (req, res) => res.json(await mongoUser.findOne(req.params.User)));
 app.post("/delete", async (req, res) => {
   await mongoUser.deleteUser(req.body.username);
   return res.json({message: "Success to remove"});
@@ -48,44 +47,14 @@ app.post("/", async (req, res) => {
 app.get("/Wireguard/:Type/:User", async (req, res) => {
   const { Type, User } = req.params;
   const wirepeerindex = parseInt(req.query.peer||0);
-  const endpoint = (req.query.host||req.headers.host||req.headers.Host||req.headers.hostname||req.headers.Hostname).replace(/\:.*/, "");
-  const Client = await mongoUser.findOne(User);
-  if (!Client) return res.status(400).json({ error: "User not found" });
-  if (Client.wireguard.length === 0) return res.status(400).json({message: "No Wireguard keys!"});
-  const ClientwireguardPeer = Client.wireguard[wirepeerindex];
+  const endpoint = process.env.WIREGUARD_HOST||(req.query.host||req.headers.host||req.headers.Host||req.headers.hostname||req.headers.Hostname||"").replace(/\:.*/, "");
+  const Port = process.env.WIREGUARD_PORT||"51820";
+  const ConfigUserInJson = await mongoUser.getWireguardconfig(User, wirepeerindex, endpoint);
+  ConfigUserInJson.Interface.Address = ConfigUserInJson.Interface.Address.map(Ip => `${Ip.ip}/${Ip.mask}`)
   try {
-    const WireguardServer = {
-      ip: await getWireguardip(),
-      keys: wireguardInterfaceConfig()
-    }
-    const ConfigUserInJson = {
-      Interface: {
-        PrivateKey: String(ClientwireguardPeer.keys.Private),
-        Address: [
-          `${ClientwireguardPeer.ip.v4.ip}/${ClientwireguardPeer.ip.v4.mask}`,
-          `${ClientwireguardPeer.ip.v6.ip}/${ClientwireguardPeer.ip.v6.mask}`
-        ],
-        DNS: [
-          "8.8.8.8",
-          "1.1.1.1",
-          "8.8.4.4",
-          "1.0.0.1"
-        ],
-      },
-      Peer: {
-        PublicKey: String(WireguardServer.keys.Public),
-        PresharedKey: String(ClientwireguardPeer.keys.Preshared),
-        Endpoint: `${endpoint}:${req.query.port||"51820"}`,
-        AllowedIPs: [
-          "0.0.0.0/0",
-          "::0/0"
-        ]
-      }
-    };
-    
     // Create Client Config
     if (Type === "wireguard"||Type === "qrcode") {
-      const Config = ([
+      const WireguardConfig = ([
         "[Interface]",
         `PrivateKey = ${ConfigUserInJson.Interface.PrivateKey}`,
         `Address = ${ConfigUserInJson.Interface.Address.join(",")}`,
@@ -94,12 +63,12 @@ app.get("/Wireguard/:Type/:User", async (req, res) => {
         "[Peer]",
         `PublicKey = ${ConfigUserInJson.Peer.PublicKey}`,
         `PresharedKey = ${ConfigUserInJson.Peer.PresharedKey}`,
-        `Endpoint = ${endpoint}:51820`,
+        `Endpoint = ${ConfigUserInJson.Peer.Endpoint}:${ConfigUserInJson.Peer.Port}`,
         `AllowedIPs = ${ConfigUserInJson.Peer.AllowedIPs.join(",")}`
       ]).join("\n");
       if (Type === "qrcode") {
         res.setHeader("Content-Type", "image/png");
-        return res.send(await qrCodeCreate(Config, { type: "png" }));
+        return res.send(await qrCodeCreate(WireguardConfig, { type: "png" }));
       }
       res.setHeader("Content-Type", "text/plain");
       return res.send(Config);
@@ -123,8 +92,8 @@ app.get("/Wireguard/:Type/:User", async (req, res) => {
         `  option public_key '${ConfigUserInJson.Peer.PublicKey}'`,
         `  option preshared_key '${ConfigUserInJson.Peer.PresharedKey}'`,
         ...ConfigUserInJson.Peer.AllowedIPs.map(IP => `  list allowed_ips '${IP}'`),
-        `  option endpoint_host '${endpoint}'`,
-        "  option endpoint_port '51820'",
+        `  option endpoint_host '${ConfigUserInJson.Peer.Endpoint}'`,
+        `  option endpoint_port '${ConfigUserInJson.Peer.Port}'`,
         "  option persistent_keepalive '25'",
         "  option route_allowed_ips '1'"
       ]).join("\n"));
