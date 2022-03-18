@@ -30,7 +30,6 @@ const FilterUse = async () => {
 module.exports.addIgnoreIP = (ip) => {if (typeof ip === "string" && ip) {IgnoreIps.push(ip);return;}; throw new Error("Invalid IP");}
 module.exports.gen_pool_ips = gen_pool_ips;
 async function gen_pool_ips(PoolNumber = 1) {
-  FilterUse();
   const Users = (await mongo_user.getUsers()).map(User => User.wireguard).reduce((previousValue, currentValue) => currentValue.concat(previousValue), []).map(a => a.ip);
   const IP_Pool = await getPoolIP();
   if (IP_Pool.length === 0) throw new Error("No ip avaibles");
@@ -39,8 +38,8 @@ async function gen_pool_ips(PoolNumber = 1) {
     const ip = IP_Pool.filter(Ip => !(Users.find(User => User.v4.ip === Ip.v4.ip)||IgnoreIps.find(User => User === Ip.v4.ip)))[Math.floor(Math.random()+Math.random() * (IgnoreIps.length+1))]
     IgnoreIps.push(ip.v4.ip);
     NewPool.push(ip);
-    console.log(ip);
   }
+  FilterUse();
   return NewPool;
 }
 

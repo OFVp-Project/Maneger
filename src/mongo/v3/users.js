@@ -147,12 +147,6 @@ function onRun(operationType, data) {
   }));
 }
 
-on(async (operationType, data) => {
-  daemon.io.emit("userOn", operationType, data);
-  daemon.io.emit("usersEncrypt", await getUsers());
-  daemon.io.emit("usersDecrypt", await getUsersDecrypt());
-});
-
 // function to manipulate database
 module.exports.getUsers = getUsers;
 /**
@@ -181,6 +175,12 @@ async function getUsersDecrypt() {
     return user;
   });
 }
+
+on(async (operationType, data) => {
+  daemon.io.emit("userOn", operationType, data);
+  daemon.io.emit("usersEncrypt", await getUsers());
+  daemon.io.emit("usersDecrypt", await getUsersDecrypt());
+});
 
 const daemon = require("../../daemon/connect");
 daemon.io.on("connection", async socket => {
@@ -286,6 +286,23 @@ async function deleteUser(username) {
   await UsersSchema.deleteOne({username: userData.username});
   onRun("delete", userData);
   return;
+}
+
+module.exports.deleteUsers = deleteUsers;
+/**
+ * delete one user
+ * @param {Array<string>} Users 
+ */
+async function deleteUsers(Users) {
+  if (!Users) throw new Error("Required Users to delete user");
+  if (Users.find(User => typeof User !== "string")) throw new Error("Invalid username");
+  const UsersBase = await getUsers();
+  return await Promise.all(Users.map(async User => {
+    const userData = UsersBase.find(Use => User === Use.username);
+    await UsersSchema.deleteOne({username: userData.username});
+    onRun("delete", userData);
+    return userData;
+  }));
 }
 
 module.exports.updatePassword = updatePassword;

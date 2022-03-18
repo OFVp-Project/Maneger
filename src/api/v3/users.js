@@ -7,15 +7,22 @@ const qrCode = require("qrcode");
 const js_yaml = require("js-yaml");
 const { promisify } = require("util");
 const qrCodeCreate = promisify(qrCode.toBuffer);
-
 const mongoUser = require("../../mongo/v3/users");
+
 app.get("/", async ({res}) => res.json(await mongoUser.getUsers()));
-app.post("/delete", async (req, res) => {
+app.post("/deleteOne", async (req, res) => {
   mongoUser.deleteUser(req.body.username);
   return res.json({
     message: "Success to remove",
     // data: user
   });
+});
+app.post("/deleteArray", async (req, res) => {
+  /** @type {Array<string>} */
+  const UsersToDelete = req.body.Users;
+  if (!(typeof UsersToDelete === "object" && typeof UsersToDelete.map === "function")) return res.status(400).json({message: "Allow Array with users string"});
+  if (UsersToDelete.find(Test => typeof Test !== "string")) return res.status(400).json({message: "Allow Array with users string"});
+  return res.json(await mongoUser.deleteUsers(UsersToDelete));
 });
 app.post("/", async (req, res) => {
   const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req.body;
