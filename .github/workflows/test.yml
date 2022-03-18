@@ -47,24 +47,34 @@ jobs:
           load: true
 
       - name: Up Docker Container
+        env:
+          PASSWORD_ENCRYPT: "dev" 
+          COOKIE_SECRET: "dev" 
+          MongoDB_URL: "mongodb://${{ env.mongodbip }}:27017" 
+          NODE_ENV: "testing"
         run: |
-          docker run --net=host --name=daemon_ofvp -e PASSWORD_ENCRYPT="dev" -e COOKIE_SECRET="dev" -e MongoDB_URL="mongodb://${{ env.mongodbip }}:27017" -e NODE_ENV="testing" ${{ env.DOCKERIMAGE }}:local &
+          docker run --net=host --name=daemon_ofvp -e PASSWORD_ENCRYPT -e COOKIE_SECRET -e MongoDB_URL -e NODE_ENV ${{ env.DOCKERIMAGE }}:local &
           while true; do
             if docker logs daemon_ofvp | grep -q "3000"; then exit 0; fi
             sleep 1
           done
 
       - name: Run Test requests (10)
-        run: REQUESTS=10 node test/index.js
+        env:
+          REQUESTS: 10
+        run: node test/index.js || (docker logs daemon_ofvp && exit 1)
 
-      - name: Run Test requests (25)
-        run: REQUESTS=25 node test/index.js
-
-      - name: Run Test requests (40)
-        run: REQUESTS=40 node test/index.js
+      - name: Run Test requests (50)
+        env:
+          REQUESTS: 50
+        run: node test/index.js || (docker logs daemon_ofvp && exit 1)
 
       - name: Run Test requests (500)
-        run: REQUESTS=500 node test/index.js
+        env:
+          REQUESTS: 500
+        run: node test/index.js || (docker logs daemon_ofvp && exit 1)
 
       - name: Run Test requests (1000)
-        run: REQUESTS=1000 node test/index.js
+        env:
+          REQUESTS: 1000
+        run: node test/index.js || (docker logs daemon_ofvp && exit 1)

@@ -21,12 +21,8 @@ async function CreateRequest(Username){
   console.log("Passing:", User.username);
 }
 
-(function(){
-  for (let req = 0; req < reqNumber; req++) CreateRequest(crypto.randomUUID().replace(/\-/gi, "").slice(0, 23)).catch(err => {
-    console.log(err);
-    if (err.data) {
-      console.log(err.data.toString())
-    }
-    process.exit(1);
-  });
-})();
+/**
+ * @param {Array<string>} Users 
+ * @returns {Promise<any>}
+ */
+module.exports.main = Users => Users.map(data => CreateRequest(data));
