@@ -192,7 +192,6 @@ const daemon = require("../../daemon/connect");
 daemon.io.on("connection", async socket => {
   console.info(`Sending users to daemon client id ${socket.id}`);
   const enUsers = await getUsers(), deUsers = await getUsersDecrypt();
-  console.log(enUsers, deUsers);
   socket.emit("usersEncrypt", enUsers);
   socket.emit("usersDecrypt", deUsers);
 });
