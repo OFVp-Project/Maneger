@@ -71,7 +71,7 @@ app.get("/Wireguard/:Type/:User", async (req, res) => {
         return res.send(await qrCodeCreate(WireguardConfig, { type: "png" }));
       }
       res.setHeader("Content-Type", "text/plain");
-      return res.send(Config);
+      return res.send(WireguardConfig);
     }
     else if (Type === "json") return res.json(ConfigUserInJson);
     else if (Type === "yaml") {
