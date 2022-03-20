@@ -339,7 +339,7 @@ async function updatePassword(Username, NewPassword) {
 function wireguardInterfaceConfig() {
   const storage = process.env.NODE_ENV === "development"? process.cwd():"/data";
   if (fs.existsSync(path.resolve(storage, "wireguardInterface.json"))) return JSON.parse(fs.readFileSync(path.resolve(storage, "wireguardInterface.json"), "utf8"));
-  const keys = mongoUser.CreateWireguardKeys();
+  const keys = CreateWireguardKeys();
   fs.writeFileSync(path.resolve(storage, "wireguardInterface.json"), JSON.stringify(keys, null, 2));
   return keys;
 }
