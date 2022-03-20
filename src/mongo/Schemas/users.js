@@ -78,6 +78,10 @@ const UsersSchema = Connection.model("Users", new Schema({
       }
     }
   ]
+}, {
+  versionKey: false,
+  autoIndex: true,
+  bufferCommands: false,
 }));
 
 // jsdocs Types

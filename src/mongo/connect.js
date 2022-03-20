@@ -5,6 +5,11 @@ const Mongoose = require("mongoose");
 const Connection = Mongoose.createConnection(MongoDB_URL, {
   maxPoolSize: 400,
   minPoolSize: 5,
+  autoIndex: true,
+  useNewUrlParser: true,
+  compressors: "zlib",
+  serializeFunctions: true,
+  zlibCompressionLevel: 9
 });
 module.exports.Connection = Connection;
 Connection.set("maxTimeMS", 3 * 1000);

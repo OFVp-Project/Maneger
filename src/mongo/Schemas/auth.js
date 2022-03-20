@@ -35,6 +35,10 @@ const authSchema = Connection.model("AuthToken", new Schema({
     type: String,
     default: () => (new Date).toString()
   }
+}, {
+  versionKey: false,
+  autoIndex: true,
+  bufferCommands: false,
 }));
 
 // jsdocs Types
