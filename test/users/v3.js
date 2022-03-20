@@ -8,18 +8,35 @@ async function CreateRequest(Username){
     ssh_connections: 0,
     wireguard_peers: 1
   }).then(res => JSON.parse(res.data.toString("utf8")));
-  await Promise.all([
-    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/json/${User.username}`),
-    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/yaml/${User.username}`),
-    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/wireguard/${User.username}`),
-    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/openwrt18/${User.username}`)
-  ]);
-  await http_requests.postBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/delete`, {username: User.username});
   return User;
+}
+
+async function getWireguardConfig(username) {
+  const data = await Promise.all([
+    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/json/${username}`),
+    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/yaml/${username}`),
+    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/wireguard/${username}`),
+    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/openwrt18/${username}`)
+  ]);
+  return {
+    json: data[0].data.toString("utf8"),
+    yaml: data[1].data.toString("utf8"),
+    wireguard: data[2].data.toString("utf8"),
+    openwrt18: data[3].data.toString("utf8")
+  };
+}
+
+async function deleteuser(username) {
+  await http_requests.postBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/delete`, {username: username});
 }
 
 /**
  * @param {Array<string>} Users 
  * @returns {Promise<any>}
  */
-module.exports.main = Users => Promise.all(Users.map(data => CreateRequest(data)));
+module.exports.main = Users => Promise.all(Users.map(async data => {
+  const dataCreate = await CreateRequest(data);
+  const wireguardConfig = await getWireguardConfig(data);
+  await deleteuser(data.username);
+  return {data: dataCreate, wireguardConfig: wireguardConfig};
+}));
