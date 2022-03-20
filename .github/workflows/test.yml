@@ -78,4 +78,11 @@ jobs:
         env:
           REQUESTS: ${{ matrix.REQUETS }}
           DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
-        run: node test/index.js || (docker logs daemon_ofvp && exit 1)
+        run: |
+          node test/index.js
+          if [[ "$?" != "0" ]]; then
+            echo "~~~~~~~~~~~~ ERROR ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi

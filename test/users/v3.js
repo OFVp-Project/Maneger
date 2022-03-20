@@ -37,6 +37,6 @@ async function deleteuser(username) {
 module.exports.main = Users => Promise.all(Users.map(async data => {
   const dataCreate = await CreateRequest(data);
   const wireguardConfig = await getWireguardConfig(data);
-  await deleteuser(data.username);
+  await deleteuser(username);
   return {data: dataCreate, wireguardConfig: wireguardConfig};
 }));
