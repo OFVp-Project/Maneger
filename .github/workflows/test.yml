@@ -12,7 +12,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        REQUETS: [10, 50, 500, 1000] 
+        REQUETS:
+          - 10
+          - 50
+          - 100
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2.4.0
@@ -57,7 +60,7 @@ jobs:
           screen -dm -L -Logfile /tmp/daemon_ofvp.log docker logs --follow daemon_ofvp
           while true; do
             if cat /tmp/daemon_ofvp.log | grep -q "3000"; then
-              if curl http://localhost:3000/users/v3; then
+              if curl http://localhost:3000/users/v3 &> /dev/null; then
                 break
               else
                 echo "Cannot request users endpoint"
@@ -79,8 +82,7 @@ jobs:
           REQUESTS: ${{ matrix.REQUETS }}
           DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
         run: |
-          node test/index.js
-          if [[ "$?" != "0" ]]; then
+          if ! node test/index.js; then
             echo "~~~~~~~~~~~~ ERROR ~~~~~~~~~~~~"
             echo
             docker logs daemon_ofvp

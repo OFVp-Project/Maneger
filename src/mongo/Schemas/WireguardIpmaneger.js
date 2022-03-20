@@ -26,13 +26,6 @@ const FilterUse = async () => {
   return IgnoreIps = IgnoreIps.filter(ip => Users.find(user => user.wireguard.find(ip2 => ip2.ip.v4.ip === ip)));
 }
 
-function getRandomInt(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-
 /** @param {string} ip IPv4  @returns {void} */
 module.exports.addIgnoreIP = (ip) => {if (typeof ip === "string" && ip) {IgnoreIps.push(ip);return;}; throw new Error("Invalid IP");}
 module.exports.gen_pool_ips = gen_pool_ips;
@@ -43,8 +36,7 @@ async function gen_pool_ips(PoolNumber = 1) {
   const NewPool = [];
   for (let index = 0; index < PoolNumber; index++) {
     const ipFilter = IP_Pool.filter(Ip => !(Users.find(User => User.v4.ip === Ip.v4.ip)||IgnoreIps.find(User => User === Ip.v4.ip)));
-    const ranInt = getRandomInt(0, ipFilter.length);
-    const ip = ipFilter[ranInt];
+    const ip = ipFilter[((min, max)=>{min = Math.ceil(min); max = Math.floor(max); return Math.floor(Math.random() * (max - min + 1)) + min;})(0, ipFilter.length)];
     IgnoreIps.push(ip.v4.ip); NewPool.push(ip);
   }
   FilterUse();
