@@ -1,5 +1,4 @@
-const http_requests = require("../http_request");
-
+const http_requests = require("../../src/http_request");
 async function CreateRequest(Username){
   const User = await http_requests.postBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3`, {
     username: Username,
@@ -10,7 +9,6 @@ async function CreateRequest(Username){
   }).then(res => JSON.parse(res.data.toString("utf8")));
   return User;
 }
-
 async function getWireguardConfig(username) {
   const data = await Promise.all([
     await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/json/${username}`),
@@ -25,7 +23,6 @@ async function getWireguardConfig(username) {
     openwrt18: data[3].data.toString("utf8")
   };
 }
-
 async function deleteuser(username) {
   await http_requests.postBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/delete`, {username: username});
 }

@@ -6,10 +6,11 @@ module.exports.postBuffer = postBuffer;
  * @param {string} url 
  * @returns {Promise<{data: Buffer; headers: Headers;}>}
  */
-async function getBuffer(url) {
+async function getBuffer(url, headers = {}) {
   const NodeFetch = (await import("node-fetch")).default;
   const response = await NodeFetch(url, {
-    method: "GET"
+    method: "GET",
+    headers: headers||{}
   });
   if (response.ok) return {
     data: Buffer.from(await response.arrayBuffer()),
@@ -27,13 +28,14 @@ async function getBuffer(url) {
  * @param {Array|Object} body 
  * @returns {Promise<{data: Buffer; headers: Headers;}>}
  */
-async function postBuffer(url, body) {
+async function postBuffer(url, body, headers = {}) {
   const NodeFetch = (await import("node-fetch")).default;
   const response = await NodeFetch(url, {
     method: "POST",
     body: JSON.stringify(body||{}),
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...(headers||{})
     },
   });
   if (response.ok) return {

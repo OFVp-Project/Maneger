@@ -186,20 +186,6 @@ async function getUsersDecrypt() {
   });
 }
 
-on(async (operationType, data) => {
-  daemon.io.emit("userOn", operationType, data);
-  daemon.io.emit("usersEncrypt", await getUsers());
-  daemon.io.emit("usersDecrypt", await getUsersDecrypt());
-});
-
-const daemon = require("../../daemon/connect");
-daemon.io.on("connection", async socket => {
-  console.info(`Sending users to daemon client id ${socket.id}`);
-  const enUsers = await getUsers(), deUsers = await getUsersDecrypt();
-  socket.emit("usersEncrypt", enUsers);
-  socket.emit("usersDecrypt", deUsers);
-});
-
 module.exports.findOne = findOne;
 /**
  * Find one user in the Database

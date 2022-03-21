@@ -23,35 +23,11 @@ services:
     - "--quiet"
     - "--logpath"
     - "/dev/null"
-  ofvp_daemon_maneger:
-    container_name: ofvp_daemon_maneger
-    restart: on-failure
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ghcr.io/ofvp-project/deamonmaneger:local
-    depends_on:
-      - ofvp_mongodb
-    networks:
-      - "ofvp_network"
-    environment:
-      NODE_ENV: "development"
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
-      COOKIE_SECRET: "dev"
-      PASSWORD_ENCRYPT: "dev"
-      DAEMON_PASSWORD: "dev"
-      DAEMON_USER: "dev"
-    ports:
-      - 3000:3000/tcp
-    volumes:
-      - data_api:/data
-
+    
   ofvp_openssh:
     container_name: ofvp_openssh
     restart: on-failure
     image: ghcr.io/ofvp-project/openssh:nightly
-    depends_on:
-      - ofvp_daemon_maneger
     networks:
       - "ofvp_network"
     environment:
@@ -75,3 +51,30 @@ services:
     command:
       - "--ssh"
       - "ofvp_openssh:22"
+
+  ofvp_daemon_maneger:
+    container_name: ofvp_daemon_maneger
+    restart: on-failure
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/ofvp-project/deamonmaneger:local
+    depends_on:
+      - ofvp_mongodb
+      - ofvp_openssh
+    networks:
+      - "ofvp_network"
+    environment:
+      NODE_ENV: "development"
+      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+      COOKIE_SECRET: "dev"
+      PASSWORD_ENCRYPT: "dev"
+      DAEMON_PASSWORD: "dev"
+      DAEMON_USER: "dev"
+      OPENSSH_ENDPOINT_HOST: "ofvp_openssh"
+      OPENSSH_ENDPOINT_PORT: "3002"
+      OPENSSH_PORT: "2222"
+    ports:
+      - 3000:3000/tcp
+    volumes:
+      - data_api:/data
