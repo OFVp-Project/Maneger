@@ -6,9 +6,9 @@ const UserMongo = require("../mongo/Schemas/users");
 const { getWireguardip } = require("../mongo/Schemas/WireguardIpmaneger");
 
 // Wireguard
-if (!!WIREGUARD_HOST && !!WIREGUARD_ENDPOINT_PORT) {
+if (!!WIREGUARD_ENDPOINT_HOST && !!WIREGUARD_ENDPOINT_PORT) {
   UserMongo.on(async () => {
-    http_requests.postBuffer(`http://${WIREGUARD_HOST}:${WIREGUARD_ENDPOINT_PORT}/v1/init`, {
+    http_requests.postBuffer(`http://${WIREGUARD_ENDPOINT_HOST}:${WIREGUARD_ENDPOINT_PORT}/v1/init`, {
       users: await UserMongo.getUsers(),
       WireguardIpConfig: {
         keys: (() => {
@@ -28,9 +28,9 @@ if (!!WIREGUARD_HOST && !!WIREGUARD_ENDPOINT_PORT) {
 }
 
 // OpenSSH
-if (!!OPENSSH_HOST && !!OPENSSH_ENDPOINT_PORT) {
+if (!!OPENSSH_ENDPOINT_HOST && !!OPENSSH_ENDPOINT_PORT) {
   UserMongo.on(async (operation, document) => {
-    http_requests.postBuffer(`http://${OPENSSH_HOST}:${OPENSSH_ENDPOINT_PORT}/v1/update/${operation}`, document, {daemon_password: DAEMON_PASSWORD, daemon_user: DAEMON_USER});
-    http_requests.postBuffer(`http://${OPENSSH_HOST}:${OPENSSH_ENDPOINT_PORT}/v1/init`, await UserMongo.getUsersDecrypt(), {daemon_password: DAEMON_PASSWORD, daemon_user: DAEMON_USER});
+    http_requests.postBuffer(`http://${OPENSSH_ENDPOINT_HOST}:${OPENSSH_ENDPOINT_PORT}/v1/update/${operation}`, document, {daemon_password: DAEMON_PASSWORD, daemon_user: DAEMON_USER});
+    http_requests.postBuffer(`http://${OPENSSH_ENDPOINT_HOST}:${OPENSSH_ENDPOINT_PORT}/v1/init`, await UserMongo.getUsersDecrypt(), {daemon_password: DAEMON_PASSWORD, daemon_user: DAEMON_USER});
   });
 }
