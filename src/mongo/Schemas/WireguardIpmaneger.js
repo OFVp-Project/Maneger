@@ -37,7 +37,8 @@ async function gen_pool_ips(PoolNumber = 1) {
   for (let index = 0; index < PoolNumber; index++) {
     const ipFilter = IP_Pool.filter(Ip => !(Users.find(User => User.v4.ip === Ip.v4.ip)||IgnoreIps.find(User => User === Ip.v4.ip)));
     const ip = ipFilter[((min, max)=>{min = Math.ceil(min); max = Math.floor(max); return Math.floor(Math.random() * (max - min + 1)) + min;})(0, ipFilter.length)];
-    IgnoreIps.push(ip.v4.ip); NewPool.push(ip);
+    if (ip  === undefined) NewPool.push((await gen_pool_ips(1))[0]);
+    else IgnoreIps.push(ip.v4.ip); NewPool.push(ip);
   }
   FilterUse();
   return NewPool;
@@ -104,5 +105,6 @@ async function poolGen() {
 poolGen().then(res => {
   wireguardInterface = res.shift();
   pool = res;
+  console.log("Wireguard IP range length %d.", res.length);
   lockLoadips = false;
 });

@@ -17,7 +17,6 @@
       "docker-compose.yml"
     ],
     "env": {
-      "MongoDB_URL": "mongodb://localhost:27017",
       "NODE_ENV": "development",
       "COOKIE_SECRET": "dev",
       "PASSWORD_ENCRYPT": "aaaaa",
@@ -55,6 +54,7 @@
     "socket.io": "^4.4.1"
   },
   "devDependencies": {
+    "axios": "^0.26.1",
     "nodemon": "^2.0.15"
   }
 }

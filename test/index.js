@@ -18,7 +18,7 @@ const showTime = () => {
     console.log(Dat.name+":", Math.floor(EndDate % Dat.correct_value));
   }
 }
-require("./users/v3").main(Users).then(showTime).catch(err => {
+require("./users/v1").main(Users).then(showTime).catch(err => {
   console.log(err);
   showTime();
   process.exit(1);

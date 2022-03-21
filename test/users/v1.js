@@ -1,6 +1,6 @@
-const http_requests = require("../../src/http_request");
+const http_requests = require("../http_request");
 async function CreateRequest(Username){
-  const User = await http_requests.postBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3`, {
+  const User = await http_requests.postBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v1`, {
     username: Username,
     password: "aaaaaaaa14",
     date_to_expire: new Date((new Date().getTime()+(1000*60*60*7*30*2))).toString(),
@@ -11,10 +11,10 @@ async function CreateRequest(Username){
 }
 async function getWireguardConfig(username) {
   const data = await Promise.all([
-    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/json/${username}`),
-    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/yaml/${username}`),
-    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/wireguard/${username}`),
-    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/Wireguard/openwrt18/${username}`)
+    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v1/Wireguard/json/${username}`),
+    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v1/Wireguard/yaml/${username}`),
+    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v1/Wireguard/wireguard/${username}`),
+    await http_requests.getBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v1/Wireguard/openwrt18/${username}`)
   ]);
   return {
     json: data[0].data.toString("utf8"),
@@ -24,7 +24,7 @@ async function getWireguardConfig(username) {
   };
 }
 async function deleteuser(username) {
-  await http_requests.postBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v3/delete`, {username: username});
+  await http_requests.postBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v1/delete`, {username: username});
 }
 
 /**
@@ -34,6 +34,6 @@ async function deleteuser(username) {
 module.exports.main = Users => Promise.all(Users.map(async randomUsername => {
   const dataCreate = await CreateRequest(randomUsername);
   const wireguardConfig = await getWireguardConfig(randomUsername);
-  await deleteuser(randomUsername);
+  if (process.env.DONT_DELETE !== "true") await deleteuser(randomUsername);
   return {data: dataCreate, wireguardConfig: wireguardConfig};
 }));

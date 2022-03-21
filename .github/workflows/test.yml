@@ -1,4 +1,4 @@
-name: Test requests
+name: Test
 on:
   pull_request:
   push:
@@ -9,13 +9,6 @@ jobs:
   requests:
     runs-on: ubuntu-latest
     name: Requests
-    strategy:
-      fail-fast: false
-      matrix:
-        REQUETS:
-          - 10
-          - 50
-          - 100
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2.4.0
@@ -50,24 +43,23 @@ jobs:
           load: true
 
       - name: Up Docker Container
+        timeout-minutes: 1
         env:
-          PASSWORD_ENCRYPT: "dev" 
-          COOKIE_SECRET: "dev" 
-          MongoDB_URL: "mongodb://${{ env.MONGO_IP }}:27017/test" 
+          PASSWORD_ENCRYPT: "dev"
+          COOKIE_SECRET: "dev"
+          MongoDB_URL: "mongodb://${{ env.MONGO_IP }}:27017/test"
           NODE_ENV: "testing"
         run: |
           docker run --name=daemon_ofvp -d -p 3000:3000/tcp -e PASSWORD_ENCRYPT -e COOKIE_SECRET -e MongoDB_URL -e NODE_ENV ghcr.io/ofvp-project/deamonmaneger:local
-          screen -dm -L -Logfile /tmp/daemon_ofvp.log docker logs --follow daemon_ofvp
+          docker logs --follow daemon_ofvp &
           while true; do
-            if cat /tmp/daemon_ofvp.log | grep -q "3000"; then
-              if curl http://localhost:3000/users/v3 &> /dev/null; then
-                break
-              else
-                echo "Cannot request users endpoint"
-                exit 1
-              fi
+            if docker ps | grep "daemon_ofvp" | grep -q "Exit";then
+              docker logs daemon_ofvp
+              exit 1
             fi
-            sleep 1
+            if (docker logs daemon_ofvp 2>&1| grep -q "3000"); then
+              break
+            fi
           done
           IP="$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daemon_ofvp | sed "s|'||g")"
           echo "Daemon IP: ${IP}"
@@ -77,14 +69,773 @@ jobs:
       - name: Install node packages
         run: npm install
 
-      - name: Run Test requests (${{ matrix.REQUETS }})
+      - name: Create 5 Documents
         env:
-          REQUESTS: ${{ matrix.REQUETS }}
+          REQUESTS: 5
+          DONT_DELETE: true
           DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
         run: |
           if ! node test/index.js; then
-            echo "~~~~~~~~~~~~ ERROR ~~~~~~~~~~~~"
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
             echo
             docker logs daemon_ofvp
             exit 1
           fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+
+      - name: Create more 5 Document
+        env:
+          REQUESTS: 5
+          DONT_DELETE: true
+          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
+        run: |
+          if ! node test/index.js; then
+            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
+            echo
+            docker logs daemon_ofvp
+            exit 1
+          fi
+

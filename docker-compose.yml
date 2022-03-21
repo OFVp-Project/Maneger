@@ -23,11 +23,34 @@ services:
     - "--quiet"
     - "--logpath"
     - "/dev/null"
-    
+
+  ofvp_daemon_maneger:
+    container_name: ofvp_daemon_maneger
+    restart: on-failure
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/ofvp-project/deamonmaneger:local
+    depends_on:
+      - ofvp_mongodb
+    networks:
+      - "ofvp_network"
+    environment:
+      NODE_ENV: "development"
+      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+      COOKIE_SECRET: "dev"
+      PASSWORD_ENCRYPT: "dev"
+      DAEMON_PASSWORD: "dev"
+      DAEMON_USER: "dev"
+    ports:
+      - 3000:3000/tcp
+    volumes:
+      - data_api:/data
+
   ofvp_openssh:
     container_name: ofvp_openssh
     restart: on-failure
-    image: ghcr.io/ofvp-project/openssh:nightly
+    image: ghcr.io/ofvp-project/openssh:latest
     networks:
       - "ofvp_network"
     environment:
@@ -38,8 +61,24 @@ services:
       - 2222:22/tcp
     volumes:
       - data_ssh:/data
+
+  ofvp_wireguard:
+    container_name: ofvp_wireguard
+    restart: on-failure
+    image: ghcr.io/ofvp-project/wireguard:latest
+    networks:
+      - "ofvp_network"
+    environment:
+      DAEMON_HOST: "http://ofvp_daemon_maneger:5000"
+      DAEMON_PASSWORD: "dev"
+      DAEMON_USER: "dev"
+    ports:
+      - 51820:51820/udp
+    depends_on:
+      - ofvp_daemon_maneger
+
   ofvp_webproxy:
-    image: ghcr.io/ofvp-project/webproxy:nightly
+    image: ghcr.io/ofvp-project/webproxy:latest
     container_name: ofvp_webproxy
     restart: on-failure
     depends_on:
@@ -51,30 +90,3 @@ services:
     command:
       - "--ssh"
       - "ofvp_openssh:22"
-
-  ofvp_daemon_maneger:
-    container_name: ofvp_daemon_maneger
-    restart: on-failure
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ghcr.io/ofvp-project/deamonmaneger:local
-    depends_on:
-      - ofvp_mongodb
-      - ofvp_openssh
-    networks:
-      - "ofvp_network"
-    environment:
-      NODE_ENV: "development"
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
-      COOKIE_SECRET: "dev"
-      PASSWORD_ENCRYPT: "dev"
-      DAEMON_PASSWORD: "dev"
-      DAEMON_USER: "dev"
-      OPENSSH_ENDPOINT_HOST: "ofvp_openssh"
-      OPENSSH_ENDPOINT_PORT: "3002"
-      OPENSSH_PORT: "2222"
-    ports:
-      - 3000:3000/tcp
-    volumes:
-      - data_api:/data

@@ -15,7 +15,7 @@ module.exports.io = io;
 const BodyParse = require("body-parser");
 const cors = require("cors");
 const ExpressSession = require("express-session");
-const MongoStore = require('connect-mongo');
+const MongoStore = require("connect-mongo");
 
 app.use(cors());
 app.use(BodyParse.urlencoded({extended: true}));
@@ -98,15 +98,10 @@ app.post("/logout", RateLimit, async (req, res) => {
 });
 
 // Endpoints
-// Users
-const usersV3 = require("./v3/users");
-app.use("/users/v3", userAuth.authEndpoints, usersV3.app);
-app.use("/users", ({res}) => res.status(400).json({message: "set endpoint version, check wiki: https://github.com/OFVp-Project/DeamonManeger/wiki/Users"}));
-
-// Auth
-const authV3 = require("./v3/auth");
-app.use("/auth/v3", userAuth.authEndpoints, RateLimit({windowMs: 60*1000, max: 10, skip: true}), authV3.app);
-app.use("/auth", ({res}) => res.status(400).json({message: "set endpoint version, check wiki: https://github.com/OFVp-Project/DeamonManeger/wiki/Auth"}));
+const usersv1 = require("./v1/users");
+const authv1 = require("./v1/auth");
+app.use("/users/v1", userAuth.authEndpoints, usersv1.app);
+app.use("/auth/v1", userAuth.authEndpoints, RateLimit({windowMs: 60*1000, max: 10, skip: true}), authv1.app);
 
 // Backend get errors and send to client.
 app.use(({res})=>{res.status(404).json({message: "endpoint no exist."})});

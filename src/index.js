@@ -11,6 +11,6 @@ global.console = new Console.Console({
   console.log("Connecting in mongo database");
   await (require("./mongo/connect")).ConnectionStatus();
   console.log("Sucess to connect in database");
-  require("./daemon/connect");
+  require("./daemon");
   require("./api/index");
 })();
