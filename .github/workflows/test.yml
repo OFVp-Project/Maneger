@@ -82,17 +82,3 @@ jobs:
             docker logs daemon_ofvp
             exit 1
           fi
-
-      - name: Create 300 More Documents
-        timeout-minutes: 10
-        env:
-          REQUESTS: 300
-          DONT_DELETE: true
-          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
-        run: |
-          if ! node test/index.js; then
-            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
-            echo
-            docker logs daemon_ofvp
-            exit 1
-          fi
