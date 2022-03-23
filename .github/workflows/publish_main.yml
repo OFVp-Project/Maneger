@@ -9,10 +9,12 @@ on:
       - "Dockerfile"
       - "README.md"
       - "src/**/*"
+      - ".github/**/*"
 
 env:
-  DOCKERPLATFORM: "linux/amd64,linux/arm64"
-  DOCKERIMAGE: "ghcr.io/ofvp-project/deamonmaneger:latest"
+  # DOCKERPLATFORM: "linux/amd64,linux/arm64"
+  DOCKERPLATFORM: "linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/arm/v7"
+  DOCKERIMAGE: "ghcr.io/ofvp-project/deamonmaneger"
 
 jobs:
   latestDeploy:
@@ -20,7 +22,7 @@ jobs:
     name: Publish latest
     environment:
       name: PublishImage
-      url: "ghcr.io/ofvp-project/deamonmaneger:latest"
+      url: "ghcr.io/ofvp-project/deamonmaneger"
     steps:
       - uses: actions/checkout@v2.4.0
         with:
@@ -45,7 +47,7 @@ jobs:
           context: .
           push: true
           target: server
-          tags: ${{ env.DOCKERIMAGE }}
+          tags: ${{ env.DOCKERIMAGE }}:latest
           platforms: ${{ env.DOCKERPLATFORM }}
-          cache-from: type=gha,scope=${{ hashFiles('**/package-lock.json') }}
-          cache-to: type=gha,mode=max,scope=${{ hashFiles('**/package-lock.json') }}
+          cache-from: type=gha,scope=${{ github.ref }}_${{ hashFiles('**/package-lock.json') }}
+          cache-to: type=gha,mode=max,scope=${{ github.ref }}_${{ hashFiles('**/package-lock.json') }}
