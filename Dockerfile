@@ -12,7 +12,7 @@ case $(uname -m) in \
   armv7l ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-armv7l.tar.gz";; \
   ppc64el ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-ppc64le.tar.gz";; \
   s390x ) NODEURL="https://nodejs.org/download/release/$NODEVERSION/node-$NODEVERSION-linux-s390x.tar.gz";; \
-  *) echo "Unsupported architecture"; exit 1;; \
+  *) echo "Unsupported architecture ($(uname -m))"; exit 1;; \
 esac && \
 echo "Node bin Url: ${NODEURL}"; wget -q "${NODEURL}" -O /tmp/node.tar.gz && \
 tar xfz /tmp/node.tar.gz -C /tmp/Node && \
