@@ -159,7 +159,8 @@ module.exports.getUsers = getUsers;
  */
 async function getUsers() {
   /** @type {Array<typeUser>} */
-  const data = await UsersSchema.find().lean();
+  // const data = await UsersSchema.find().lean();
+  const data = await UsersSchema.collection.find({}).toArray()
   return data.map(user => {
     user.expire = new Date(user.expire);
     delete user["_id"];
@@ -264,7 +265,8 @@ async function registersUser(data) {
       });
     }
   }
-  await UsersSchema.create(Data);
+  await UsersSchema.validate(Data);
+  await UsersSchema.collection.insertOne(Data);
   onRun("insert", Data);
   return Data;
 }
@@ -276,28 +278,10 @@ module.exports.deleteUser = deleteUser;
  */
 async function deleteUser(username) {
   if (!username) throw new Error("Required username to delete user");
-  const userData = await findOne(username);
-  if (!userData) throw new Error("User not found");
-  await UsersSchema.deleteOne({username: userData.username});
+  if (typeof username !== "string") throw new Error("Username must be a string");
+  const userData = await UsersSchema.findOneAndDelete({username});
   onRun("delete", userData);
   return;
-}
-
-module.exports.deleteUsers = deleteUsers;
-/**
- * delete one user
- * @param {Array<string>} Users 
- */
-async function deleteUsers(Users) {
-  if (!Users) throw new Error("Required Users to delete user");
-  if (Users.find(User => typeof User !== "string")) throw new Error("Invalid username");
-  const UsersBase = await getUsers();
-  return await Promise.all(Users.map(async User => {
-    const userData = UsersBase.find(Use => User === Use.username);
-    await UsersSchema.deleteOne({username: userData.username});
-    onRun("delete", userData);
-    return userData;
-  }));
 }
 
 module.exports.updatePassword = updatePassword;
