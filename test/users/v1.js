@@ -31,9 +31,17 @@ async function deleteuser(username) {
  * @param {Array<string>} Users 
  * @returns {Promise<any>}
  */
-module.exports.main = Users => Promise.all(Users.map(async randomUsername => {
+module.exports.main = async randomUsername => {
+  const InitDate = new Date();
   const dataCreate = await CreateRequest(randomUsername);
   const wireguardConfig = await getWireguardConfig(randomUsername);
   if (process.env.DONT_DELETE !== "true") await deleteuser(randomUsername);
+  let EndDate = (new Date()).getTime() - InitDate.getTime();
+  console.log(randomUsername, "test took:");
+  for (const Dat of [{name: "seconds", value: 1000, correct_value: 60}, {name: "minutes", value: 60, correct_value: 60}, {name: "hours", value: 60, correct_value: 60}, {name: "days", value: 24, correct_value: 24}, {name: "weeks", value: 7, correct_value: 7}, {name: "months", value: 30, correct_value: 30}, {name: "years", value: 12, correct_value: 12}]) {
+    if (EndDate <= Dat.value) break
+    EndDate = EndDate / Dat.value;
+    console.log(Dat.name+":", Math.floor(EndDate % Dat.correct_value));
+  }
   return {data: dataCreate, wireguardConfig: wireguardConfig};
-}));
+};

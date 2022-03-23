@@ -3,6 +3,12 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "docker-compose.yml"
+      - "package*.json"
+      - "Dockerfile"
+      - "README.md"
+      - "src/**/*"
 
 env:
   DOCKERPLATFORM: "linux/amd64,linux/arm64"
