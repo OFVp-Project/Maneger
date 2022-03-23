@@ -172,7 +172,8 @@ async function registerToken(data) {
     password: await EncryptPassword(data.password),
     privilages: data.privilages
   };
-  await authSchema.create(AuthTokenObject);
+  await authSchema.validate(AuthTokenObject);
+  await authSchema.collection.insertOne(AuthTokenObject);
   onRun("insert", AuthTokenObject);
   return AuthTokenObject;
 }
@@ -185,9 +186,7 @@ module.exports.deleteAuth = deleteAuth;
  * @returns {Promise<void>}
  */
 async function deleteAuth(EmailToken, Password) {
-  const AuthTokenObject = await checkAuth(EmailToken, Password);
-  await authSchema.deleteOne({ token: AuthTokenObject.token });
-  onRun("delete", AuthTokenObject);
+  onRun("delete", await authSchema.collection.findOneAndDelete({ token: AuthTokenObject.token }));
   return;
 }
 

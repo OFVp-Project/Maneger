@@ -116,7 +116,6 @@ const typeUser = {
   },
   ssh: {connections: 0},
   wireguard: [{
-    load: true,
     keys: {
       Preshared: "",
       Private: "",
@@ -160,7 +159,7 @@ module.exports.getUsers = getUsers;
 async function getUsers() {
   /** @type {Array<typeUser>} */
   // const data = await UsersSchema.find().lean();
-  const data = await UsersSchema.collection.find({}).toArray()
+  const data = await UsersSchema.collection.find({}).toArray();
   return data.map(user => {
     user.expire = new Date(user.expire);
     delete user["_id"];
@@ -181,7 +180,6 @@ module.exports.getUsersDecrypt = getUsersDecrypt;
 async function getUsersDecrypt() {
   const data = await getUsers();
   return data.map(user => {
-    user.expire = new Date(user.expire);
     user.password = DecryptPassword(user.password);
     return user;
   });
