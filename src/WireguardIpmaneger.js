@@ -9,7 +9,7 @@ module.exports.addIgnoreIP = (ip) => {if (typeof ip === "string" && ip) {IgnoreI
 module.exports.gen_pool_ips = gen_pool_ips;
 async function gen_pool_ips(PoolNumber = 1) {
   const getIpv4IP = async () => {
-    const data = ((await mongo_user.getUsers()).map(User => User.wireguard).reduce((previousValue, currentValue) => currentValue.concat(previousValue), []).map(a => a.ip)).filter(Ip => !(Users.find(User => User.v4.ip === Ip.v4.ip)||IgnoreIps.find(User => User === Ip.v4.ip)));
+    const data = (await mongo_user.getUsers()).map(User => User.wireguard).reduce((previousValue, currentValue) => currentValue.concat(previousValue), []).map(a => a.ip);
     const ipV4 = `10.0.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
     if (!data.find(ip => ip.v4.ip === ipV4)) return ipV4;
     else return await UsersFilter();

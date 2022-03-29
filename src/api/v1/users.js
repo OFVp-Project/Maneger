@@ -14,6 +14,7 @@ app.post("/delete", async (req, res) => {
   return res.json({message: "Success to remove"});
 });
 app.post("/", async (req, res) => {
+  if (req.body === undefined||Object.keys(req.body).length === 0) return res.json({message: "Invalid body"});
   /** @type {{username: string; password: string; date_to_expire: string; ssh_connections: number|string; wireguard_peers: number|string;}} */
   const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req.body;
   const ErrorInputs = [];
