@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 });
 app.use((req, res, next) => {
   const Redirect = (req.body.redirect || req.query.redirect || req.headers.redirect);
-  const host = (req.headers.host||req.headers.Host||req.headers.hostname||req.headers.Hostname).replace(/\:.*/, "");
+  const host = (req.headers.host||req.headers.Host||req.headers.hostname||req.headers.Hostname||"").replace(/\:.*/, "");
   if (Redirect === ""||Redirect === undefined) return next();
   if (Redirect.startsWith("/")) return next();
   if (Redirect.startsWith(`${req.method}://${host}`)) return next();
