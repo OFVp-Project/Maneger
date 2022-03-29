@@ -3,7 +3,7 @@ const socketIO = require("socket.io");
 const fs = require("fs");
 const path = require("path");
 const UserMongo = require("./mongo/Schemas/users");
-const WireguardIpmaneger = require("./mongo/Schemas/WireguardIpmaneger");
+const WireguardIpmaneger = require("./WireguardIpmaneger");
 const PasswordEncrypt = require("./PasswordEncrypt");
 
 const WireguardKeys = () => {

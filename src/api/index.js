@@ -20,7 +20,7 @@ const MongoStore = require("connect-mongo");
 app.use(cors());
 app.use(BodyParse.urlencoded({extended: true}));
 app.use(BodyParse.json());
-app.use((req, res, next) => {
+app.use(({res, next}) => {
   res.json = (body) => {
     if (!res.get("Content-Type")) {
       res.set("Content-Type", "application/json");
@@ -28,17 +28,6 @@ app.use((req, res, next) => {
     res.send(JSON.stringify(body, (key, value) => typeof value === "bigint" ? value.toString() : value, 2));
   }
   return next();
-});
-app.use((req, res, next) => {
-  const Redirect = (req.body.redirect || req.query.redirect || req.headers.redirect);
-  const host = (req.headers.host||req.headers.Host||req.headers.hostname||req.headers.Hostname||"").replace(/\:.*/, "");
-  if (Redirect === ""||Redirect === undefined) return next();
-  if (Redirect.startsWith("/")) return next();
-  if (Redirect.startsWith(`${req.method}://${host}`)) return next();
-  res.status(301).json({
-    error: "invalid redirect",
-    redirect: Redirect
-  });
 });
 if (!process.env.COOKIE_SECRET) throw new Error("COOKIE_SECRET is not defined");
 let { MongoDB_URL } = process.env;

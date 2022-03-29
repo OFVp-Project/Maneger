@@ -2,7 +2,7 @@ const crypto = require("crypto"), path = require("path"), fs = require("fs");
 const { Connection } = require("../connect");
 const { Schema } = require("mongoose");
 const { DecryptPassword, EncryptPassword } = require("../../PasswordEncrypt");
-const { gen_pool_ips, getWireguardip } = require("./WireguardIpmaneger");
+const { gen_pool_ips, getWireguardip } = require("../../WireguardIpmaneger");
 
 const UsersSchema = Connection.model("Users", new Schema({
   // Basic Info

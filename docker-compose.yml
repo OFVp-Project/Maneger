@@ -47,6 +47,29 @@ services:
     volumes:
       - data_api:/data
 
+  ofvp_wireguard:
+    container_name: ofvp_wireguard
+    restart: on-failure
+    image: ghcr.io/ofvp-project/wireguard:latest
+    networks:
+      - "ofvp_network"
+    environment:
+      DAEMON_HOST: "http://ofvp_daemon_maneger:5000"
+      DAEMON_PASSWORD: "dev"
+      DAEMON_USER: "dev"
+    privileged: true
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
+      net.ipv6.conf.all.disable_ipv6: 0
+      net.ipv6.conf.all.forwarding: 1
+      net.ipv4.ip_forward: 1
+    volumes:
+      - /lib/modules/:/lib/modules/:ro
+    ports:
+      - 51820:51820/udp
+    depends_on:
+      - ofvp_daemon_maneger
+
   ofvp_openssh:
     container_name: ofvp_openssh
     restart: on-failure
@@ -62,27 +85,12 @@ services:
     volumes:
       - data_ssh:/data
 
-  ofvp_wireguard:
-    container_name: ofvp_wireguard
-    restart: on-failure
-    image: ghcr.io/ofvp-project/wireguard:latest
-    networks:
-      - "ofvp_network"
-    environment:
-      DAEMON_HOST: "http://ofvp_daemon_maneger:5000"
-      DAEMON_PASSWORD: "dev"
-      DAEMON_USER: "dev"
-    ports:
-      - 51820:51820/udp
-    depends_on:
-      - ofvp_daemon_maneger
-
   ofvp_webproxy:
     image: ghcr.io/ofvp-project/webproxy:latest
     container_name: ofvp_webproxy
     restart: on-failure
     depends_on:
-      - ofvp_server
+      - ofvp_openssh
     networks:
       - "ofvp_network"
     ports:
