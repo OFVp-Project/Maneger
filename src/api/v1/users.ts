@@ -6,9 +6,8 @@ import { registersUser, findOne, getUsers, getWireguardconfig, deleteUser } from
 export const app = express.Router();
 const qrCodeCreate = promisify(qrCode.toBuffer);
 
-app.get(["/Users", "/"], async ({res}) => res.json(await getUsers()));
 app.get("/Users/:User", async (req, res) => res.json(await findOne(req.params.User)));
-app.post("/", async (req, res) => {
+app.route("/").get(async ({res}) => res.json(await getUsers())).post(async (req, res) => {
   if (req.body === undefined||Object.keys(req.body).length === 0) return res.json({message: "Invalid body"});
   const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req.body as {username: string; password: string; date_to_expire: string; ssh_connections: number|string; wireguard_peers: number|string;};
   const ErrorInputs = [];
