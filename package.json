@@ -1,9 +1,10 @@
 {
   "name": "@ofvp_project/daemon",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "description": "daemon for managing and communicating with other servers.",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "tsc",
     "dev": "nodemon"
   },
   "nodemonConfig": {
@@ -22,7 +23,8 @@
       "PASSWORD_ENCRYPT": "aaaaa",
       "DAEMON_PASSWORD": "",
       "DAEMON_USER": ""
-    }
+    },
+    "exec": "npm run build && node dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -51,7 +53,8 @@
     "mongoose": "^6.2.9",
     "netmask": "^2.0.2",
     "qrcode": "^1.5.0",
-    "socket.io": "^4.4.1"
+    "socket.io": "^4.4.1",
+    "typescript": "^4.6.3"
   },
   "devDependencies": {
     "axios": "^0.26.1",

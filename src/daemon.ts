@@ -1,10 +1,10 @@
-const http = require("http");
-const socketIO = require("socket.io");
-const fs = require("fs");
-const path = require("path");
-const UserMongo = require("./mongo/Schemas/users");
-const WireguardIpmaneger = require("./WireguardIpmaneger");
-const PasswordEncrypt = require("./PasswordEncrypt");
+import http from "http";
+import socketIO from "socket.io";
+import fs from "fs";
+import path from "path";
+import * as UserMongo from "./model/users";
+import * as WireguardIpmaneger from "./WireguardIpmaneger";
+import * as PasswordEncrypt from "./PasswordEncrypt";
 
 const WireguardKeys = () => {
   const storage = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
@@ -14,9 +14,9 @@ const WireguardKeys = () => {
   return keys;
 }
 
-const httpServer = http.createServer();
+export const httpServer = http.createServer();
 const io = new socketIO.Server(httpServer);
-httpServer.listen(5000, () => console.log("Daemon Listening on port 5000, dont expose to internet!"));
+
 io.use((socket, next) => {
   const { DAEMON_PASSWORD="", DAEMON_USER="" } = process.env;
   if (socket.handshake.auth.password !== DAEMON_PASSWORD) return next(new Error("Wrong password"));

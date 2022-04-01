@@ -5,9 +5,10 @@ if (!SecretEncrypt) {
   process.exit(1);
 }
 
-module.exports.EncryptPassword = EncryptPassword;
-module.exports.DecryptPassword = DecryptPassword;
-function EncryptPassword(Password = "") {
+/**
+ * @param {string} password
+ */
+export function EncryptPassword(Password: string): {Encrypt: string; iv: string;} {
   const iv = crypto.randomBytes(16);
   const key = crypto.scryptSync(SecretEncrypt, "salt", 24);
   const cipher = crypto.createCipheriv("aes-192-cbc", key, iv);
@@ -19,11 +20,10 @@ function EncryptPassword(Password = "") {
 
 /**
  * Return String with password decrypt.
- * 
- * @param {{iv: string; Encrypt: string;}} passwordObject - Object with iv and Encrypt.
+ * @param {string|{iv: string; Encrypt: string;}} password
  * @returns {string}
  */
-function DecryptPassword(passwordObject) {
+export function DecryptPassword(passwordObject: {iv: string; Encrypt: string;}): string {
   const {iv, Encrypt} = passwordObject;
   if (!iv) throw new Error("iv blank");
   if (!Encrypt) throw new Error("Encrypt blank");

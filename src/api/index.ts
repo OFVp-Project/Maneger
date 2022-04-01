@@ -1,21 +1,20 @@
-const http = require("http");
-const express = require("express");
-const SocketIo = require("socket.io");
+import http from "http";
+import express from "express";
+import SocketIo from "socket.io";
+import RateLimit from "express-rate-limit";
+import BodyParse from "body-parser";
+import cors from "cors";
+import ExpressSession from "express-session";
+import MongoStore from "connect-mongo";
+import * as Auth from "../model/auth";
+import * as userAuth from "./auth";
+import usersv1 from "./v1/users";
+import authv1 from "./v1/auth";
 
 // Express and Socket.io
-const app = express();
-module.exports.app = app;
-const Server = http.createServer(app);
-Server.listen(3000, () => console.info("API listen in port 3000"));
-module.exports.Server = Server;
-const io = new SocketIo.Server(Server);
-module.exports.io = io;
-
-// Express middlewares
-const BodyParse = require("body-parser");
-const cors = require("cors");
-const ExpressSession = require("express-session");
-const MongoStore = require("connect-mongo");
+export const app = express();
+export const Server = http.createServer(app);
+export const io = new SocketIo.Server(Server);
 
 app.use(cors());
 app.use(BodyParse.urlencoded({extended: true}));
@@ -54,18 +53,15 @@ app.use(ExpressSession({
 }));
 
 // API routes
-const { checkAuth } = require("../mongo/Schemas/auth");
-const userAuth = require("./auth");
-const RateLimit = (require("express-rate-limit")).default;
 app.post("/login", RateLimit({windowMs: 1*60*1000, max: 5}), async (req, res) => {
-  const { Email, Password, redirect: Redirect } = req.body;
+  const { Email, Password } = req.body;
   var ConnectedStatus = false;
   try {
-    const userData = await checkAuth(Email, Password);
+    const userData = await Auth.checkAuth(Email, Password);
     if (userData) {
       req.session.email = Email;
       req.session.password = userData.password;
-      await new Promise((resolve, reject) => req.session.save(err => {if(err) return reject(err);resolve()}));
+      await new Promise((resolve, reject) => req.session.save(err => {if(err) return reject(err);resolve("")}));
       ConnectedStatus = true;
     }
     res.set("AuthStatus", String(ConnectedStatus));
@@ -76,9 +72,8 @@ app.post("/login", RateLimit({windowMs: 1*60*1000, max: 5}), async (req, res) =>
 });
 app.post("/authCheck", userAuth.authEndpoints, async ({res}) => res.sendStatus(200));
 app.post("/logout", RateLimit, async (req, res) => {
-  const {redirect: Redirect} = req.body;
   try {
-    await new Promise((resolve, reject) => req.session.destroy(err => {if(err) return reject(err);resolve()}));
+    await new Promise((resolve, reject) => req.session.destroy(err => {if(err) return reject(err);resolve("")}));
     return res.sendStatus(200);
   } catch (err) {
     console.log(String(err.stack||err));
@@ -87,10 +82,8 @@ app.post("/logout", RateLimit, async (req, res) => {
 });
 
 // Endpoints
-const usersv1 = require("./v1/users");
-const authv1 = require("./v1/auth");
 app.use("/users/v1", userAuth.authEndpoints, usersv1.app);
-app.use("/auth/v1", userAuth.authEndpoints, RateLimit({windowMs: 60*1000, max: 10, skip: true}), authv1.app);
+app.use("/auth/v1", userAuth.authEndpoints, RateLimit({windowMs: 60*1000, max: 10}), authv1.app);
 
 // Backend get errors and send to client.
 app.use(({res})=>{res.status(404).json({message: "endpoint no exist."})});
@@ -105,22 +98,12 @@ app.use(function (err, req, res, next) {
 
 // Socket.io Auth
 io.use(async function (socket, next) {
-  const { headers, query, auth } = socket.handshake;
-  const AuthToken = headers["AuthorizationAuth"] || query["auth"] || query["Auth"] || auth["token"] || auth["auth"];
-  const Authss = [];
-  if (AuthToken) {if ((function (JsonS = "{}") {try {JSON.parse(JsonS);return true;} catch (err) {return false;}})(AuthToken)) {
-      const TokenData = JSON.parse(AuthToken);
-      Authss.push(TokenData.email || TokenData.Email, TokenData.password || TokenData.Password);
-    } else if (AuthToken.email && AuthToken.password) Authss.push(AuthToken.email, AuthToken.password); else Authss.push(AuthToken);
-    try {
-      const Auths = await (require("../auth")).CheckGetToken(...Authss)
-      if (Auths) {
-        socket.ofvp_auth = Auths;
-        return next();
-      }
-    } catch (err) {
-      return next(err);
-    }
-  }
+  const { auth } = socket.handshake;
+  if (!auth) return next(new Error("auth is not defined"));
+  if (!auth.email) return next(new Error("auth.email is not defined"));
+  if (!auth.password) return next(new Error("auth.password is not defined"));
+  if (typeof auth.email !== "string") return next(new Error("auth.email is not a string"));
+  if (typeof auth.password !== "string") return next(new Error("auth.password is not a string"));
+  if (!!(await Auth.checkAuth(auth.email, auth.password))) return next();
   return next(new Error("Token is not valid"));
 });

@@ -1,2 +1,4 @@
 node_modules/
+dist/
 /wireguardInterface.json
+users.json

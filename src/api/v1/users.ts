@@ -1,11 +1,10 @@
-const express = require("express");
-const app = express.Router();
-module.exports.app = app;
-const qrCode = require("qrcode");
-const js_yaml = require("js-yaml");
-const { promisify } = require("util");
+import * as express from "express";
+import * as qrCode from "qrcode";
+import * as js_yaml from "js-yaml";
+import { promisify } from "util";
+import * as mongoUser from "../../model/users";
+export const app = express.Router();
 const qrCodeCreate = promisify(qrCode.toBuffer);
-const mongoUser = require("../../mongo/Schemas/users");
 
 app.get(["/Users", "/"], async ({res}) => res.json(await mongoUser.getUsers()));
 app.get("/Users/:User", async (req, res) => res.json(await mongoUser.findOne(req.params.User)));
@@ -49,16 +48,16 @@ app.get("/Wireguard/:Type/:User", async (req, res) => {
   const { Type, User } = req.params;
   const wirepeerindex = parseInt(req.query.peer||0);
   const endpoint = process.env.WIREGUARD_HOST||(req.query.host||req.headers.host||req.headers.Host||req.headers.hostname||req.headers.Hostname||"").replace(/\:.*/, "");
-  const Port = process.env.WIREGUARD_PORT||"51820";
-  const ConfigUserInJson = await mongoUser.getWireguardconfig(User, wirepeerindex, endpoint);
-  ConfigUserInJson.Interface.Address = ConfigUserInJson.Interface.Address.map(Ip => `${Ip.ip}/${Ip.mask}`)
+  const Port = parseInt(process.env.WIREGUARD_PORT||"51820");
+  const ConfigUserInJson = await mongoUser.getWireguardconfig(User, wirepeerindex, endpoint, Port);
+  const newInterface = ConfigUserInJson.Interface.Address.map(Ip => `${Ip.ip}/${Ip.mask}`)
   try {
     // Create Client Config
     if (Type === "wireguard"||Type === "qrcode") {
       const WireguardConfig = ([
         "[Interface]",
         `PrivateKey = ${ConfigUserInJson.Interface.PrivateKey}`,
-        `Address = ${ConfigUserInJson.Interface.Address.join(",")}`,
+        `Address = ${newInterface.join(",")}`,
         `DNS = ${ConfigUserInJson.Interface.DNS.join(",")}`,
         "",
         "[Peer]",
@@ -86,7 +85,7 @@ app.get("/Wireguard/:Type/:User", async (req, res) => {
         `config interface '${RandomInterfaceName}'`,
         `  option proto 'wireguard'`,
         `  option private_key '${ConfigUserInJson.Interface.PrivateKey}'`,
-        ...ConfigUserInJson.Interface.Address.map(Address => `  list addresses '${Address}'`),
+        ...newInterface.map(Address => `  list addresses '${Address}'`),
         "",
         `config wireguard_${RandomInterfaceName}`,
         `  option description '${RandomInterfaceName}Peer'`,

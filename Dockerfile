@@ -50,3 +50,4 @@ ENTRYPOINT [ "node", "--trace-warnings", "src/index.js" ]
 COPY package*.json ./
 RUN npm install --no-save --debug
 COPY ./ ./
+RUN npm run build

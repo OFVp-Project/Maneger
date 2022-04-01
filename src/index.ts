@@ -1,12 +1,8 @@
 #!/usr/bin/env node
-/* const Console = require("console");
-global.console = new Console.Console({
-  stdout: process.stdout,
-  stderr: process.stderr,
-  colorMode: true,
-  ignoreErrors: true,
-  groupIndentation: 2
-}); */
+import * as Daemon from "./daemon";
+import * as API from "./api/index";
+import * as MongoConnect from "./mongo/connect";
+
 // Set Default envs
 if (!process.env.MongoDB_URL) process.env.MongoDB_URL = "mongodb://localhost/OFVpServer";
 if (!process.env.NODE_ENV) process.env.NODE_ENV = "development";
@@ -21,8 +17,7 @@ if (!process.env.OPENSSH_PORT) process.env.OPENSSH_PORT = "";
 
 (async ()=> {
   console.log("Connecting in mongo database");
-  await (require("./mongo/connect")).ConnectionStatus();
-  console.log("Sucess to connect in database");
-  require("./daemon");
-  require("./api/index");
+  MongoConnect.ConnectionStatus().then(() => console.log("Sucess to connect in database"));
+  Daemon.httpServer.listen(5000, () => console.log("Daemon Listening on port 5000, dont expose to internet!"));
+  API.Server.listen(3000, () => console.info("API listen in port 3000"));
 })();

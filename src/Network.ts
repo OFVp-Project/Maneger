@@ -1,20 +1,19 @@
-const os = require("os");
-const fs = require("fs");
-const path = require("path");
+import os from "os";
+import fs from "fs";
+import path from "path";
 
-module.exports.getInterfaces = getInterfaces;
-/**
- * Get Local Network Interfaces
- * @returns {{[x: string]: {
- *    interface: string;
- *    mac: string;
- *    rx: number|undefined;
- *    tx: number|undefined;
- *    v4: {addresses: string; netmask: string; cidr: string;};
- *    v6: {addresses: string; netmask: string; cidr: string;};
- *  };}}
- */
-function getInterfaces() {
+type netInterfaces = {
+  [x: string]: {
+    interface: string;
+    mac: string;
+    rx: number|undefined;
+    tx: number|undefined;
+    v4: {addresses: string; netmask: string; cidr: string;};
+    v6: {addresses: string; netmask: string; cidr: string;};
+  };
+}
+
+export function getInterfaces(): netInterfaces {
   const interfaces = os.networkInterfaces();
   const localInterfaces = {};
   for (const name of Object.getOwnPropertyNames(interfaces)) {
@@ -48,7 +47,7 @@ function getInterfaces() {
   return localInterfaces;
 }
 
-module.exports.getInterfacesArray = () => {
+export function getInterfacesArray(){
   const interfaces = getInterfaces();
   return Object.keys(interfaces).map(name => interfaces[name]);
 }

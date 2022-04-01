@@ -1,17 +1,10 @@
-const express = require("express");
-const mongo_auth = require("../mongo/Schemas/auth");
-const { DecryptPassword } = require("../PasswordEncrypt");
+import { Request, Response, NextFunction } from "express";
+import * as mongo_auth from "../model/auth";
+import { DecryptPassword } from "../PasswordEncrypt";
 
-module.exports.authEndpoints = authEndpoints;
-/**
- * 
- * @param {express.Request} req 
- * @param {express.Response} res 
- * @param {import("express").NextFunction} next 
- */
-async function authEndpoints(req, res, next) {
+export async function authEndpoints(req: Request, res: Response, next: NextFunction) {
   const AuthEmail = req.session.email || req.body.AuthEmail || req.headers.ofvpemail;
-  const AuthPassword = req.session.password || req.body.AuthPassword || req.headers.ofvppassword;
+  const AuthPassword: string|{iv: string; Encrypt: string} = req.session.password || req.body.AuthPassword || req.headers.ofvppassword;
   const AuthToken = req.body.AuthToken || req.headers.ofvptoken;
   const boolCheck = async () => {
     try {
