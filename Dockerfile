@@ -32,9 +32,7 @@ COPY --from=downloadnode /tmp/nodebin/ /usr
 RUN npm install -g npm@latest
 
 # Setup Project
-WORKDIR /usr/src/Backend
 ENV MongoDB_URL="mongodb://localhost:27017/OFVpServer" 
-ENV NODE_ENV="production"
 ENV COOKIE_SECRET=""
 ENV PASSWORD_ENCRYPT=""
 ENV DAEMON_PASSWORD=""
@@ -46,8 +44,10 @@ ENV OPENSSH_PORT=""
 
 EXPOSE 3000/tcp
 VOLUME [ "/data" ]
-ENTRYPOINT [ "node", "--trace-warnings", "src/index.js" ]
+WORKDIR /usr/src/Backend
+ENTRYPOINT [ "node", "--trace-warnings", "dist/index.js" ]
 COPY package*.json ./
-RUN npm install --no-save --debug
+RUN npm install --no-save
 COPY ./ ./
 RUN npm run build
+ENV NODE_ENV="production"

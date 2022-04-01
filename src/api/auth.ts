@@ -12,14 +12,14 @@ export async function authEndpoints(req: Request, res: Response, next: NextFunct
       if (AuthEmail && AuthPassword) {
         const User = users.find(user => user.email === AuthEmail);
         if (User) {
-          if (typeof AuthPassword.iv === "string" && typeof AuthPassword.Encrypt === "string") {
-            if (User.password.iv === AuthPassword.iv && User.password.Encrypt === AuthPassword.Encrypt) {
+          if (typeof Object(AuthPassword).iv === "string" && typeof Object(AuthPassword).Encrypt === "string") {
+            if (Object(User.password).iv === Object(AuthPassword).iv && Object(User.password).Encrypt === Object(AuthPassword).Encrypt) {
               req.session.email = AuthEmail;
               req.session.password = AuthPassword;
               req.session.save();
               return true;
             }
-          } else if (await DecryptPassword(User.password) === AuthPassword) {
+          } else if (await DecryptPassword(Object(User.password)) === AuthPassword) {
               req.session.email = AuthEmail;
               req.session.password = User.password;
               req.session.save();

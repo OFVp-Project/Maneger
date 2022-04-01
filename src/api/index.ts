@@ -8,8 +8,8 @@ import ExpressSession from "express-session";
 import MongoStore from "connect-mongo";
 import * as Auth from "../model/auth";
 import * as userAuth from "./auth";
-import usersv1 from "./v1/users";
-import authv1 from "./v1/auth";
+import * as usersv1 from "./v1/users";
+import * as authv1 from "./v1/auth";
 
 // Express and Socket.io
 export const app = express();

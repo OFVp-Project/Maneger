@@ -1,5 +1,6 @@
 import { Schema, createConnection } from "mongoose";
 let { MongoDB_URL } = process.env;
+if (!MongoDB_URL) MongoDB_URL = "mongodb://localhost:27017";
 if (!/:\/\/.*\//.test(MongoDB_URL)) MongoDB_URL = MongoDB_URL+"/OFVpServer";
 
 // Create connection
