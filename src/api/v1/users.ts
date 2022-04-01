@@ -32,9 +32,13 @@ app.post("/", async (req, res) => {
   if (parseInt(wireguard_peers) !== 0) {
     if (isNaN(parseInt(wireguard_peers))) ErrorInputs.push({parameter: "wireguard_peers", message: "Count to get keys and ips to wireguard"});
   }
-  if (username.trim().toLowerCase() === "root") return res.status(400).json({message: "not allowed to root username"});
-  if (ErrorInputs.length > 0) return res.status(400).json({ error: ErrorInputs });
-  if (await mongoUser.findOne(username)) return res.status(400).json({ error: "User already exists" });
+  if (typeof username !== "string") return res.status(400).json({
+    message: "Username no is string"
+  });
+  if (username.trim().toLowerCase() === "root") 
+  return res.status(400).json({message: "not allowed to root username"}); if (ErrorInputs.length > 
+  0) return res.status(400).json({ error: ErrorInputs }); if (await mongoUser.findOne(username)) 
+  return res.status(400).json({ error: "User already exists" });
   return res.json(await mongoUser.registersUser({
     username: username,
     password: password,

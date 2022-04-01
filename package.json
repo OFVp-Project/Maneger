@@ -24,7 +24,7 @@
       "DAEMON_PASSWORD": "",
       "DAEMON_USER": ""
     },
-    "exec": "npm run build && node dist/index.js"
+    "exec": "ts-node src/index.ts"
   },
   "repository": {
     "type": "git",
@@ -59,6 +59,7 @@
   "devDependencies": {
     "@types/node": "^17.0.23",
     "axios": "^0.26.1",
-    "nodemon": "^2.0.15"
+    "nodemon": "^2.0.15",
+    "ts-node": "^10.7.0"
   }
 }

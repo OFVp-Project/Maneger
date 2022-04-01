@@ -47,28 +47,29 @@ function onRun(operationType: "delete"|"insert"|"update", data: userType) {
 }
 
 export async function getUsers() {
-  return Object.keys(userObject).map(Username => {
-    const user = userObject[Username];
+  return Object.keys(userObject).map(Username => userObject[Username]).map(user => {
     user.expire = new Date(user.expire);
     delete user["_id"];
     delete user["__v"];
     user.wireguard = user.wireguard.map(Peer => {
       delete Peer["_id"];
       return Peer;
-    })
+    });
     return user;
   });
 }
 
 export async function getUsersDecrypt() {
-  return await getUsers().then(res => res.map(user => {
-    user.password = DecryptPassword(Object(user.password));
+  return (await getUsers()).map(user => {
+    if (typeof user.password !== "object") throw new Error("Invalid Password storage");
+    const password = DecryptPassword(Object(user.password));
+    user.password = password;
     return user;
-  }));
+  });
 }
 
-export async function findOne(username: string) {
-  if (!userObject[username]) throw new Error("User not found");
+export async function findOne(username: string): Promise<void|userType> {
+  if (!userObject[username]) return;
   const user = userObject[username];
   user.expire = new Date(user.expire);
   delete user["_id"];
@@ -110,7 +111,7 @@ export async function registersUser(data: {username: string; expire: Date; passw
   if (data.wireguard_peers < 0) throw new Error("wireguard_peers must be greater than 0");
   if (data.ssh_connections < 0) throw new Error("ssh_connections must be greater than 0");
   if (await findOne(data.username)) throw new Error("Username already exists");
-  const Data = {
+  const DataCreate = {
     username: data.username,
     expire: data.expire,
     password: EncryptPassword(data.password),
@@ -129,9 +130,10 @@ export async function registersUser(data: {username: string; expire: Date; passw
       return ipsArray;
     })()
   };
-  userObject[data.username] = Data;
-  onRun("insert", Data);
-  return Data;
+  console.log(DataCreate);
+  userObject[data.username] = DataCreate;
+  onRun("insert", DataCreate);
+  return DataCreate;
 }
 
 export async function deleteUser(username: string): Promise<void> {
@@ -174,7 +176,7 @@ export async function getWireguardconfig(Username: string, wireguardKey: number 
       AllowedIPs: Array<string>
     };
   }> {
-  const WireguardKeys = (await findOne(Username)).wireguard;
+  const WireguardKeys = Object(await findOne(Username)).wireguard;
   if (WireguardKeys.length === 0) throw new Error("No keys avaible");
   const ClientwireguardPeer = WireguardKeys[wireguardKey];
   const WireguardServer = {ip: await getWireguardip(), keys: await wireguardInterfaceConfig()};
