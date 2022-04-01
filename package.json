@@ -9,7 +9,7 @@
   },
   "nodemonConfig": {
     "delay": 2500,
-    "ext": "json,js",
+    "ext": "json,js,ts",
     "watch": [
       "src/*",
       "package.json",
@@ -42,24 +42,28 @@
   "homepage": "https://github.com/OFVp-Project/DeamonManeger#readme",
   "dependencies": {
     "body-parser": "^1.19.2",
-    "connect-mongo": "^4.6.0",
     "cors": "^2.8.5",
     "cron": "^1.8.2",
     "express": "^4.17.3",
     "express-rate-limit": "^6.3.0",
     "express-session": "^1.17.2",
     "ip-matching": "^2.1.2",
+    "joi": "^17.6.0",
     "js-yaml": "^4.1.0",
     "mongoose": "^6.2.9",
     "netmask": "^2.0.2",
     "qrcode": "^1.5.0",
+    "session-file-store": "^1.5.0",
     "socket.io": "^4.4.1",
+    "ts-node": "^10.7.0",
     "typescript": "^4.6.3"
   },
   "devDependencies": {
+    "@types/express": "^4.17.13",
+    "@types/express-session": "^1.17.4",
     "@types/node": "^17.0.23",
+    "@types/session-file-store": "^1.2.2",
     "axios": "^0.26.1",
-    "nodemon": "^2.0.15",
-    "ts-node": "^10.7.0"
+    "nodemon": "^2.0.15"
   }
 }

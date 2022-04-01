@@ -2,20 +2,15 @@ import * as express from "express";
 import * as qrCode from "qrcode";
 import * as js_yaml from "js-yaml";
 import { promisify } from "util";
-import * as mongoUser from "../../model/users";
+import { registersUser, findOne, getUsers, getWireguardconfig, deleteUser } from "../../model/users";
 export const app = express.Router();
 const qrCodeCreate = promisify(qrCode.toBuffer);
 
-app.get(["/Users", "/"], async ({res}) => res.json(await mongoUser.getUsers()));
-app.get("/Users/:User", async (req, res) => res.json(await mongoUser.findOne(req.params.User)));
-app.post("/delete", async (req, res) => {
-  await mongoUser.deleteUser(req.body.username);
-  return res.json({message: "Success to remove"});
-});
+app.get(["/Users", "/"], async ({res}) => res.json(await getUsers()));
+app.get("/Users/:User", async (req, res) => res.json(await findOne(req.params.User)));
 app.post("/", async (req, res) => {
   if (req.body === undefined||Object.keys(req.body).length === 0) return res.json({message: "Invalid body"});
-  /** @type {{username: string; password: string; date_to_expire: string; ssh_connections: number|string; wireguard_peers: number|string;}} */
-  const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req.body;
+  const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req.body as {username: string; password: string; date_to_expire: string; ssh_connections: number|string; wireguard_peers: number|string;};
   const ErrorInputs = [];
   if (!username) ErrorInputs.push({parameter: "username", message: "Username is required"});
   if (!password) ErrorInputs.push({parameter: "password", message: "Password is required"});
@@ -26,34 +21,33 @@ app.post("/", async (req, res) => {
     if (UserDate.toString() === "Invalid Date") ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is invalid, please use YYYY-MM-DD or javascript Date object"});
     else if (UserDate.getTime() <= futureDate.getTime()) ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is in the future, date input: "+UserDate.toString()+", min require date: "+futureDate.toString()});
   }
-  if (parseInt(ssh_connections) !== 0) {
-    if (isNaN(parseInt(ssh_connections))) ErrorInputs.push({parameter: "ssh_connections", message: "Ssh connections is required"});
-  }
-  if (parseInt(wireguard_peers) !== 0) {
-    if (isNaN(parseInt(wireguard_peers))) ErrorInputs.push({parameter: "wireguard_peers", message: "Count to get keys and ips to wireguard"});
-  }
-  if (typeof username !== "string") return res.status(400).json({
-    message: "Username no is string"
-  });
-  if (username.trim().toLowerCase() === "root") 
-  return res.status(400).json({message: "not allowed to root username"}); if (ErrorInputs.length > 
-  0) return res.status(400).json({ error: ErrorInputs }); if (await mongoUser.findOne(username)) 
-  return res.status(400).json({ error: "User already exists" });
-  return res.json(await mongoUser.registersUser({
+  if (parseInt(String(ssh_connections)) !== 0) {if (isNaN(parseInt(String(ssh_connections)))) ErrorInputs.push({parameter: "ssh_connections", message: "Ssh connections is required"});}
+  if (parseInt(String(wireguard_peers)) !== 0) {if (isNaN(parseInt(String(wireguard_peers)))) ErrorInputs.push({parameter: "wireguard_peers", message: "Count to get keys and ips to wireguard"});}
+  if (typeof username !== "string") return res.status(400).json({message: "Username no is string"});
+  if (username.trim().toLowerCase() === "root") return res.status(400).json({message: "not allowed to root username"});
+  if (ErrorInputs.length > 0) return res.status(400).json({ error: ErrorInputs });
+  if (await findOne(username)) return res.status(400).json({ error: "User already exists" });
+  const userDateRegisted = await registersUser({
     username: username,
     password: password,
     expire: (new Date(date_to_expire)),
-    ssh_connections: parseInt(ssh_connections),
-    wireguard_peers: parseInt(wireguard_peers)
-  }));
+    ssh_connections: parseInt(String(ssh_connections)),
+    wireguard_peers: parseInt(String(wireguard_peers))
+  });
+  return res.json(userDateRegisted);
+});
+
+app.post("/delete", async (req, res) => {
+  await deleteUser(req.body.username);
+  return res.json({message: "Success to remove"});
 });
 
 app.get("/Wireguard/:Type/:User", async (req, res) => {
   const { Type, User } = req.params;
-  const wirepeerindex = parseInt(req.query.peer||0);
-  const endpoint = process.env.WIREGUARD_HOST||(req.query.host||req.headers.host||req.headers.Host||req.headers.hostname||req.headers.Hostname||"").replace(/\:.*/, "");
+  const wirepeerindex = parseInt(String(req.query.peer)||"0");
+  const endpoint = process.env.WIREGUARD_HOST||String(req.query.host||req.headers.host||req.headers.Host||req.headers.hostname||req.headers.Hostname||"").replace(/\:.*/, "");
   const Port = parseInt(process.env.WIREGUARD_PORT||"51820");
-  const ConfigUserInJson = await mongoUser.getWireguardconfig(User, wirepeerindex, endpoint, Port);
+  const ConfigUserInJson = await getWireguardconfig(User, wirepeerindex, endpoint, Port);
   const newInterface = ConfigUserInJson.Interface.Address.map(Ip => `${Ip.ip}/${Ip.mask}`)
   try {
     // Create Client Config

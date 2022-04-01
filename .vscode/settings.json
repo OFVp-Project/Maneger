@@ -8,5 +8,7 @@
   "path-intellisense.extensionOnImport": true,
   "path-autocomplete.extensionOnImport": true,
   "javascript.updateImportsOnFileMove.enabled": "always",
-  "typescript.updateImportsOnFileMove.enabled": "always"
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "npm-intellisense.packageSubfoldersIntellisense": true,
+  "npm-intellisense.scanDevDependencies": true
 }

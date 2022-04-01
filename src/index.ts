@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-import * as Daemon from "./daemon";
-import * as API from "./api/index";
-import * as MongoConnect from "./mongo/connect";
-
 // Set Default envs
 if (!process.env.MongoDB_URL) process.env.MongoDB_URL = "mongodb://localhost/OFVpServer";
 if (!process.env.NODE_ENV) process.env.NODE_ENV = "development";
@@ -14,6 +10,10 @@ if (!process.env.WIREGUARD_HOST) process.env.WIREGUARD_HOST = "";
 if (!process.env.WIREGUARD_PORT) process.env.WIREGUARD_PORT = "";
 if (!process.env.OPENSSH_HOST) process.env.OPENSSH_HOST = "";
 if (!process.env.OPENSSH_PORT) process.env.OPENSSH_PORT = "";
+import * as Daemon from "./daemon";
+import * as API from "./api/index";
+import * as MongoConnect from "./mongo/connect";
+
 
 (async ()=> {
   console.log("Connecting in mongo database");

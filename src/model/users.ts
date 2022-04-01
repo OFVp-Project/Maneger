@@ -1,16 +1,17 @@
 import crypto from "crypto";
 import path from "path";
 import fs from "fs";
-import { DecryptPassword, EncryptPassword } from "../PasswordEncrypt";
+import joi from "joi";
+import * as PasswordEncrypt from "../PasswordEncrypt";
 import { gen_pool_ips, getWireguardip } from "../WireguardIpmaneger";
 
 export type userType = {
   username: string;
   expire: Date;
-  password: string|{
+  password: {
     iv: string;
     Encrypt: string;
-  };
+  }|string;
   ssh: {connections: number;};
   wireguard: Array<{
     keys: {
@@ -23,21 +24,59 @@ export type userType = {
       v6: {ip: string; mask: string;};
     }
   }>;
-}
+};
+
+const userSchemaValidator = joi.object().keys({
+  username: joi.string().required(),
+  expire: joi.date().required(),
+  password: joi.object().keys({
+    iv: joi.string().required(),
+    Encrypt: joi.string().required(),
+  }).required(),
+  ssh: joi.object().keys({
+    connections: joi.number().required()
+  }).required(),
+  wireguard: joi.array().items(joi.object().keys({
+    keys: joi.object().keys({
+      Preshared: joi.string().required(),
+      Private: joi.string().required(),
+      Public: joi.string().required()
+    }),
+    ip: joi.object().keys({
+      v4: joi.object().keys({
+        ip: joi.string().required(),
+        mask: joi.string().required(),
+      }),
+      v6: joi.object().keys({
+        ip: joi.string().required(),
+        mask: joi.string().required(),
+      })
+    })
+  }))
+});
 
 // Users Maneger Object
 const userObject: {[username: string]: userType} = {};
 const storagePath = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
 const userFile = path.join(storagePath, "users.json");
 if (fs.existsSync(userFile)) {
-  const usersLoad: typeof userObject = JSON.parse(fs.readFileSync(userFile, "utf8"));
-  Object.keys(usersLoad).forEach(username => {userObject[username] = usersLoad[username];});
+  const usersLoad: Array<userType> = JSON.parse(fs.readFileSync(userFile, "utf8"));
+  for (const User of usersLoad) {
+    if (!userSchemaValidator.validate(User).error) userObject[User.username] = Object(User) as userType;
+  };
 }
 
 // on actions
 const onChangecallbacks: Array<(callback: {operationType: "delete"|"insert"|"update"; fullDocument: userType;}) => void> = [];
 export function on(callback: (callback: {operationType: "delete"|"insert"|"update"; fullDocument: userType;}) => void) {onChangecallbacks.push(callback);};
-on(() => fs.writeFileSync(userFile, JSON.stringify(userObject, null, 2)));
+(async () => {
+  while(true) {
+    try {
+      fs.writeFileSync(userFile, JSON.stringify(await getUsers(), null, 2))
+    } catch(err){console.trace(err);}
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+})();
 
 function onRun(operationType: "delete"|"insert"|"update", data: userType) {
   onChangecallbacks.forEach(callback => callback({
@@ -49,36 +88,21 @@ function onRun(operationType: "delete"|"insert"|"update", data: userType) {
 export async function getUsers() {
   return Object.keys(userObject).map(Username => userObject[Username]).map(user => {
     user.expire = new Date(user.expire);
-    delete user["_id"];
-    delete user["__v"];
-    user.wireguard = user.wireguard.map(Peer => {
-      delete Peer["_id"];
-      return Peer;
-    });
-    return user;
-  });
+    return {...user} as userType;
+  }).filter(user => !(userSchemaValidator.validate(user).error));
 }
 
 export async function getUsersDecrypt() {
-  return (await getUsers()).map(user => {
-    if (typeof user.password !== "object") throw new Error("Invalid Password storage");
-    const password = DecryptPassword(Object(user.password));
-    user.password = password;
+  const data = await getUsers()
+  return data.map(user => {
+    const password = PasswordEncrypt.DecryptPassword(Object(user.password));
+    user.password = password as string;
     return user;
   });
 }
 
-export async function findOne(username: string): Promise<void|userType> {
-  if (!userObject[username]) return;
-  const user = userObject[username];
-  user.expire = new Date(user.expire);
-  delete user["_id"];
-  delete user["__v"];
-  user.wireguard = user.wireguard.map(Peer => {
-    delete Peer["_id"];
-    return Peer;
-  })
-  return user;
+export async function findOne(username: string): Promise<userType> {
+  return (await getUsers()).find(user => user.username === username);
 }
 
 export async function CreateWireguardKeys(): Promise<{Preshared: string; Private: string; Public: string;}> {
@@ -114,7 +138,7 @@ export async function registersUser(data: {username: string; expire: Date; passw
   const DataCreate = {
     username: data.username,
     expire: data.expire,
-    password: EncryptPassword(data.password),
+    password: PasswordEncrypt.EncryptPassword(data.password),
     ssh: {connections: data.ssh_connections},
     wireguard: await (async () => {
       const ipsArray: Array<{keys: {Preshared: string; Private: string; Public: string;}; ip: {v4: {ip: string; mask: string;}; v6: {ip: string; mask: string};}}> = [];
@@ -130,10 +154,11 @@ export async function registersUser(data: {username: string; expire: Date; passw
       return ipsArray;
     })()
   };
-  console.log(DataCreate);
-  userObject[data.username] = DataCreate;
-  onRun("insert", DataCreate);
-  return DataCreate;
+  const validateRe = userSchemaValidator.validate(DataCreate, {abortEarly: true});
+  if (validateRe.error) throw new Error(validateRe.error.details.map(detail => detail.message).join("\n\n"));
+  userObject[data.username] = {...DataCreate};
+  onRun("insert", {...DataCreate});
+  return {...DataCreate};
 }
 
 export async function deleteUser(username: string): Promise<void> {
@@ -149,7 +174,7 @@ export async function updatePassword(Username: string, NewPassword: string) {
   if (NewPassword.length < 8||NewPassword.length > 32) throw new Error("Password must be between 8 and 32 characters");
   const userData = await findOne(Username);
   if (!userData) throw new Error("User not found");
-  userData.password = EncryptPassword(NewPassword);
+  userData.password = PasswordEncrypt.EncryptPassword(NewPassword);
   userObject[Username] = userData;
   onRun("update", userData);
   return;
@@ -176,8 +201,9 @@ export async function getWireguardconfig(Username: string, wireguardKey: number 
       AllowedIPs: Array<string>
     };
   }> {
-  const WireguardKeys = Object(await findOne(Username)).wireguard;
+  const WireguardKeys = ({...(await findOne(Username))}).wireguard;
   if (WireguardKeys.length === 0) throw new Error("No keys avaible");
+  if (isNaN(wireguardKey)||isFinite(wireguardKey)) wireguardKey = 0;
   const ClientwireguardPeer = WireguardKeys[wireguardKey];
   const WireguardServer = {ip: await getWireguardip(), keys: await wireguardInterfaceConfig()};
   return {

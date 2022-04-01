@@ -1,4 +1,5 @@
 node_modules/
 dist/
+sessionsDir/
 /wireguardInterface.json
 users.json

@@ -1,20 +1,32 @@
+import path from "path";
 import http from "http";
 import express from "express";
 import SocketIo from "socket.io";
 import RateLimit from "express-rate-limit";
 import BodyParse from "body-parser";
 import cors from "cors";
-import ExpressSession from "express-session";
-import MongoStore from "connect-mongo";
+import ExpressSession, { Session } from "express-session";
+import sessionStore from "session-file-store";
 import * as Auth from "../model/auth";
 import * as userAuth from "./auth";
 import * as usersv1 from "./v1/users";
 import * as authv1 from "./v1/auth";
+import * as metric from "./metric";
 
 // Express and Socket.io
 export const app = express();
 export const Server = http.createServer(app);
 export const io = new SocketIo.Server(Server);
+export const session = Session;
+const storagePath = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
+
+declare module "express-session" {
+  interface Session {
+    Session;
+    email: string;
+    password: string|{iv: string; Encrypt: string;};
+  }
+}
 
 app.use(cors());
 app.use(BodyParse.urlencoded({extended: true}));
@@ -25,12 +37,13 @@ app.use(({res, next}) => {
       res.set("Content-Type", "application/json");
     }
     res.send(JSON.stringify(body, (key, value) => typeof value === "bigint" ? value.toString() : value, 2));
+    return res;
   }
   return next();
 });
+app.use(metric.app);
+
 if (!process.env.COOKIE_SECRET) throw new Error("COOKIE_SECRET is not defined");
-let { MongoDB_URL } = process.env;
-if (!/:\/\/.*\//.test(MongoDB_URL)) MongoDB_URL = MongoDB_URL+"/OFVpServer";
 app.use(ExpressSession({
   secret: process.env.COOKIE_SECRET,
   name: "ofvp_session",
@@ -41,20 +54,15 @@ app.use(ExpressSession({
     secure: "auto",
     maxAge: (1000 * 60 * 60 * 24 * 30),
   },
-  store: MongoStore.create({
-    mongoUrl: MongoDB_URL,
-    collectionName: "CookieSessions",
-    // autoRemove: "disabled",
-    autoRemove: "native",
-    crypto: {
-      secret: (process.env.PASSWORD_ENCRYPT||"").trim()
-    }
+  store: new (sessionStore(ExpressSession))({
+    path: path.join(storagePath, "sessionsDir"),
+    secret: process.env.COOKIE_SECRET
   })
 }));
 
 // API routes
 app.post("/login", RateLimit({windowMs: 1*60*1000, max: 5}), async (req, res) => {
-  const { Email, Password } = req.body;
+  const { Email, Password } = req.body as { Email: string, Password: string };
   var ConnectedStatus = false;
   try {
     const userData = await Auth.checkAuth(Email, Password);
@@ -92,7 +100,7 @@ app.use(function (err, req, res, next) {
     message: "backend crash endpoint, try again in 15 seconds.",
     error: String(err.stack||err).split(/\r\n|\n/gi),
   });
-  console.debug(err.stack||err);
+  console.error(err.stack||err);
   return;
 });
 
