@@ -41,7 +41,7 @@
   },
   "homepage": "https://github.com/OFVp-Project/DeamonManeger#readme",
   "dependencies": {
-    "body-parser": "^1.19.2",
+    "body-parser": "^1.20.0",
     "cors": "^2.8.5",
     "cron": "^1.8.2",
     "express": "^4.17.3",
