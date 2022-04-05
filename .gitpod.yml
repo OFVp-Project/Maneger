@@ -1,4 +1,15 @@
-#image: ghcr.io/ofvp-project/devcontainer
+image:
+  file: .devcontainer/Dockerfile
+github:
+  prebuilds:
+    pullRequestsFromForks: false
+    addBadge: true
+    addCheck: true
+    pullRequests: false
+    addLabel: true
+    branches: false
+additionalRepositories:
+  - url: https://github.com/OFVp-Project/OpenSSH.git
 tasks:
   - command: npm install
   - command: docker run -d -p 27017:27017/tcp mongo

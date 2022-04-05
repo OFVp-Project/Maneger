@@ -1,4 +1,4 @@
-FROM ubuntu:latest AS downloadnode
+FROM debian:latest AS downloadnode
 ENV DEBIAN_FRONTEND="noninteractive"
 
 # Install core packages
@@ -18,7 +18,7 @@ echo "Node bin Url: ${NODEURL}"; wget -q "${NODEURL}" -O /tmp/node.tar.gz && \
 tar xfz /tmp/node.tar.gz -C /tmp/Node && \
 mkdir /tmp/nodebin && cp -rp /tmp/Node/*/* /tmp/nodebin && ls /tmp/nodebin && rm -rfv /tmp/nodebin/LICENSE /tmp/nodebin/*.md
 
-FROM ubuntu:latest AS server
+FROM debian:latest AS server
 LABEL name="OFVp Server"
 LABEL org.opencontainers.image.title="OFVp Deamon Maneger"
 LABEL org.opencontainers.image.description="Main docker image to maneger anothers docker images."

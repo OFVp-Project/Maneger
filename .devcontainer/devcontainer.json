@@ -1,33 +1,30 @@
 {
     "name": "ofvpserver",
-    "image": "ghcr.io/ofvp-project/devcontainer:latest",
+    "dockerFile": "Dockerfile",
+    "updateRemoteUserUID": true,
+    "containerUser": "gitpod",
+    "remoteUser": "gitpod",
+    "postCreateCommand": "sudo screen -dm -L -Logfile /tmp/dockerd.log dockerd && npm install",
+    "runArgs": [
+      "--init",
+      "--privileged"
+    ],
+    "mounts": [
+      "source=dind-var-lib-docker,target=/var/lib/docker,type=volume"
+    ],
     "forwardPorts": [
       3000
     ],
-    "hostRequirements": {
-      "cpus": 2,
-      "memory": "2gb",
-      "storage": "128gb"
-    },
-    "postCreateCommand": "npm install --no-save && sudo /etc/init.d/mongodb start",
-    "remoteUser": "gitpod",
-    "runArgs": [
-      "--privileged",
-      "-v", "/var/run/docker.sock:/var/run/docker.sock",
-      "-p", "51820:51820/udp",
-      "-p", "7300:7300/tcp",
-      "-p", "2222:22/tcp"
-    ],
     "extensions": [
+      "github.copilot",
+      "redhat.vscode-yaml",
       "akamud.vscode-theme-onedark",
-      "formulahendry.auto-rename-tag",
       "hookyqr.beautify",
       "aaron-bond.better-comments",
       "wmaurer.change-case",
       "oouo-diogo-perdigao.docthis",
       "dbaeumer.vscode-eslint",
       "me-dutour-mathieu.vscode-github-actions",
-      "github.copilot",
       "benshabatnoam.google-translate-ext",
       "oderwat.indent-rainbow",
       "tgreen7.vs-code-node-require",
@@ -39,7 +36,6 @@
       "rangav.vscode-thunder-client",
       "visualstudioexptteam.vscodeintellicode",
       "vscode-icons-team.vscode-icons",
-      "redhat.vscode-yaml",
       "eamodio.gitlens",
       "mongodb.mongodb-vscode",
       "ms-azuretools.vscode-docker",
