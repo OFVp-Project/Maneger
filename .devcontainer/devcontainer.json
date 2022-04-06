@@ -10,7 +10,7 @@
       "--privileged"
     ],
     "mounts": [
-      "source=dind-var-lib-docker,target=/var/lib/docker,type=volume"
+      "source=ofvp_project_dind,target=/var/lib/docker,type=volume"
     ],
     "forwardPorts": [
       3000
