@@ -2,8 +2,10 @@ import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import joi from "joi";
+import { UsersSchema } from "../mongo";
 import * as PasswordEncrypt from "../PasswordEncrypt";
 import { gen_pool_ips, getWireguardip } from "../WireguardIpmaneger";
+const storagePath = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
 
 export type userType = {
   username: string;
@@ -55,28 +57,9 @@ const userSchemaValidator = joi.object().keys({
   }))
 });
 
-// Users Maneger Object
-const userObject: {[username: string]: userType} = {};
-const storagePath = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
-const userFile = path.join(storagePath, "users.json");
-if (fs.existsSync(userFile)) {
-  const usersLoad: Array<userType> = JSON.parse(fs.readFileSync(userFile, "utf8"));
-  for (const User of usersLoad) {
-    if (!userSchemaValidator.validate(User).error) userObject[User.username] = Object(User) as userType;
-  };
-}
-
 // on actions
 const onChangecallbacks: Array<(callback: {operationType: "delete"|"insert"|"update"; fullDocument: userType;}) => void> = [];
 export function on(callback: (callback: {operationType: "delete"|"insert"|"update"; fullDocument: userType;}) => void) {onChangecallbacks.push(callback);};
-(async () => {
-  while(true) {
-    try {
-      fs.writeFileSync(userFile, JSON.stringify(await getUsers(), null, 2))
-    } catch(err){console.trace(err);}
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-})();
 
 function onRun(operationType: "delete"|"insert"|"update", data: userType) {
   onChangecallbacks.forEach(callback => callback({
@@ -85,11 +68,14 @@ function onRun(operationType: "delete"|"insert"|"update", data: userType) {
   }));
 }
 
-export async function getUsers() {
-  return Object.keys(userObject).map(Username => userObject[Username]).map(user => {
+export async function getUsers(): Promise<Array<userType>> {
+  const data = await UsersSchema.collection.find().toArray() as any;
+  return data.map(user => {
     user.expire = new Date(user.expire);
-    return {...user} as userType;
-  }).filter(user => !(userSchemaValidator.validate(user).error));
+    if (user._id) delete user._id;
+    if (user.__v) delete user.__v;
+    return {...user};
+  });
 }
 
 export async function getUsersDecrypt() {
@@ -102,7 +88,9 @@ export async function getUsersDecrypt() {
 }
 
 export async function findOne(username: string): Promise<userType> {
-  return (await getUsers()).find(user => user.username === username);
+  const find = await UsersSchema.collection.findOne({username}) as any;
+  console.log(find)
+  return find||undefined;
 }
 
 export async function CreateWireguardKeys(): Promise<{Preshared: string; Private: string; Public: string;}> {
@@ -156,15 +144,13 @@ export async function registersUser(data: {username: string; expire: Date; passw
   };
   const validateRe = userSchemaValidator.validate(DataCreate, {abortEarly: true});
   if (validateRe.error) throw new Error(validateRe.error.details.map(detail => detail.message).join("\n\n"));
-  userObject[data.username] = {...DataCreate};
+  await UsersSchema.collection.insertOne({...DataCreate});
   onRun("insert", {...DataCreate});
   return {...DataCreate};
 }
 
 export async function deleteUser(username: string): Promise<void> {
-  if (!(await findOne(username))) throw new Error("User not found");
-  const data = userObject[username]
-  delete userObject[username];
+  const data: userType = await UsersSchema.collection.findOneAndDelete({username}) as any;
   onRun("delete", data);
 }
 
@@ -175,7 +161,7 @@ export async function updatePassword(Username: string, NewPassword: string) {
   const userData = await findOne(Username);
   if (!userData) throw new Error("User not found");
   userData.password = PasswordEncrypt.EncryptPassword(NewPassword);
-  userObject[Username] = userData;
+  await UsersSchema.collection.findOneAndUpdate({username: Username}, userData);
   onRun("update", userData);
   return;
 }

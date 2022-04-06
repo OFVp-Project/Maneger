@@ -1,21 +1,13 @@
 import http from "http";
 import socketIO from "socket.io";
-import fs from "fs";
-import path from "path";
 import * as UserMongo from "./model/users";
 import * as WireguardIpmaneger from "./WireguardIpmaneger";
 import * as PasswordEncrypt from "./PasswordEncrypt";
 
-const WireguardKeys = () => {
-  const storage = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
-  if (fs.existsSync(path.resolve(storage, "wireguardInterface.json"))) return JSON.parse(fs.readFileSync(path.resolve(storage, "wireguardInterface.json"), "utf8"));
-  const keys = UserMongo.CreateWireguardKeys();
-  fs.writeFileSync(path.resolve(storage, "wireguardInterface.json"), JSON.stringify(keys, null, 2));
-  return keys;
-}
-
 export const httpServer = http.createServer();
-const io = new socketIO.Server(httpServer);
+const io = new socketIO.Server(httpServer, {
+  transports: ["websocket", "polling"]
+});
 
 io.use((socket, next) => {
   const { DAEMON_PASSWORD="", DAEMON_USER="" } = process.env;
@@ -27,7 +19,7 @@ io.use((socket, next) => {
 const wireguardSend = async () => ({
   users: await UserMongo.getUsers(),
   WireguardIpConfig: {
-    keys: WireguardKeys(),
+    keys: UserMongo.wireguardInterfaceConfig(),
     ip: await WireguardIpmaneger.getWireguardip()
   }
 });

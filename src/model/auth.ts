@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { EncryptPassword, DecryptPassword } from "../PasswordEncrypt";
-import { authSchema } from "../mongo/connect";
+import { authSchema } from "../mongo";
 
 type AuthToken = {
   token: string;

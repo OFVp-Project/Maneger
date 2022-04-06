@@ -44,8 +44,9 @@ ENV OPENSSH_PORT=""
 
 EXPOSE 3000/tcp
 VOLUME [ "/data" ]
+RUN npm i -g pm2
 WORKDIR /usr/src/Backend
-ENTRYPOINT [ "node", "--trace-warnings", "dist/index.js" ]
+ENTRYPOINT [ "pm2-runtime", "start", "-i", "-1", "dist/index.js" ]
 COPY package*.json ./
 RUN npm install --no-save
 COPY ./ ./
