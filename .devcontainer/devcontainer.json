@@ -1,7 +1,7 @@
 {
     "name": "ofvpserver",
     "dockerFile": "Dockerfile",
-    "updateRemoteUserUID": true,
+    "updateRemoteUserUID": false,
     "containerUser": "gitpod",
     "remoteUser": "gitpod",
     "postCreateCommand": "sudo screen -dm -L -Logfile /tmp/dockerd.log dockerd && npm install",
