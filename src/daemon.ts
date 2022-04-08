@@ -29,7 +29,6 @@ io.on("connection", async socket => {
   const decryptUsers = await UserMongo.getUsersDecrypt();
   socket.emit("wireguard", wireguardConfig);
   socket.emit("users", decryptUsers);
-  console.log(wireguardConfig)
 });
 UserMongo.on(async ({operationType, fullDocument}) => {
   if (typeof fullDocument.password !== "string") fullDocument.password = PasswordEncrypt.DecryptPassword(fullDocument.password);
