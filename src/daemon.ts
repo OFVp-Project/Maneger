@@ -19,14 +19,17 @@ io.use((socket, next) => {
 const wireguardSend = async () => ({
   users: await UserMongo.getUsers(),
   WireguardIpConfig: {
-    keys: UserMongo.wireguardInterfaceConfig(),
+    keys: await UserMongo.wireguardInterfaceConfig(),
     ip: await WireguardIpmaneger.getWireguardip()
   }
 });
 
 io.on("connection", async socket => {
-  socket.emit("wireguard", await wireguardSend());
-  socket.emit("users", await UserMongo.getUsersDecrypt());
+  const wireguardConfig = await wireguardSend();
+  const decryptUsers = await UserMongo.getUsersDecrypt();
+  socket.emit("wireguard", wireguardConfig);
+  socket.emit("users", decryptUsers);
+  console.log(wireguardConfig)
 });
 UserMongo.on(async ({operationType, fullDocument}) => {
   if (typeof fullDocument.password !== "string") fullDocument.password = PasswordEncrypt.DecryptPassword(fullDocument.password);
