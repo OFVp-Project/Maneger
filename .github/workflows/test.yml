@@ -29,7 +29,7 @@ jobs:
           echo "MONGO_IP=${IP}" >> $GITHUB_ENV
 
       - name: Setup Node.JS and NPM
-        uses: actions/setup-node@v3.1.0
+        uses: actions/setup-node@v3.1.1
         with:
           node-version: 16.x
 
