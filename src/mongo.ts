@@ -1,10 +1,10 @@
-import { Schema, createConnection } from "mongoose";
+import mongoose from "mongoose";
 let { MongoDB_URL } = process.env;
 if (!MongoDB_URL) MongoDB_URL = "mongodb://localhost:27017";
 if (!/:\/\/.*\//.test(MongoDB_URL)) MongoDB_URL = MongoDB_URL+"/OFVpServer";
 
 // Create connection
-export const Connection = createConnection(MongoDB_URL, {
+export const Connection = mongoose.createConnection(MongoDB_URL, {
   maxPoolSize: 400,
   minPoolSize: 5,
   autoIndex: true,
@@ -40,121 +40,3 @@ export async function ConnectionStatus() {
     await new Promise(res => setTimeout(res, 500));
   }
 }
-
-export const UsersSchema = Connection.model("Users", new Schema({
-  // Basic Info
-  username: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  expire: {
-    type: String,
-    required: true
-  },
-  password: {
-    iv: {
-      type: String,
-      required: true
-    },
-    Encrypt: {
-      type: String,
-      required: true
-    }
-  },
-  // SSH
-  ssh: {
-    connections: {
-      type: Number,
-      required: true
-    }
-  },
-  // Wireguard Config
-  wireguard: [
-    {
-      keys: {
-        Preshared: {
-          type: String,
-          unique: true,
-          required: true
-        },
-        Private: {
-          type: String,
-          unique: true,
-          required: true
-        },
-        Public: {
-          type: String,
-          unique: true,
-          required: true
-        }
-      },
-      ip: {
-        v4: {
-          ip: {
-            type: String,
-            unique: true,
-            required: true
-          },
-          mask: {
-            type: String,
-            required: true
-          }
-        },
-        v6: {
-          ip: {
-            type: String,
-            unique: true,
-            required: true
-          },
-          mask: {
-            type: String,
-            required: true
-          }
-        }
-      }
-    }
-  ]
-}, {
-  versionKey: false,
-  autoIndex: true,
-  bufferCommands: false,
-}));
-
-export const authSchema = Connection.model("AuthToken", new Schema({
-  // E-Mail Token
-  token: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  // E-Mail
-  email: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  // Password
-  password: {
-    iv: {
-      type: String,
-      required: true
-    },
-    Encrypt: {
-      type: String,
-      required: true
-    }
-  },
-  privilages: {
-    type: String,
-    default: "user"
-  },
-  createdAt: {
-    type: String,
-    default: () => (new Date).toString()
-  }
-}, {
-  versionKey: false,
-  autoIndex: true,
-  bufferCommands: false,
-}));

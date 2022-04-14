@@ -1,19 +1,19 @@
 import crypto from "crypto";
 import path from "path";
 import fs from "fs";
-import joi from "joi";
-import { UsersSchema } from "../mongo";
+import mongoose from "mongoose";
 import * as PasswordEncrypt from "../PasswordEncrypt";
 import { gen_pool_ips, getWireguardip } from "../WireguardIpmaneger";
+import { Connection } from "../mongo";
 const storagePath = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
 
 export type userType = {
   username: string;
   expire: Date;
-  password: {
+  password: string|{
     iv: string;
     Encrypt: string;
-  }|string;
+  };
   ssh: {connections: number;};
   wireguard: Array<{
     keys: {
@@ -28,34 +28,82 @@ export type userType = {
   }>;
 };
 
-const userSchemaValidator = joi.object().keys({
-  username: joi.string().required(),
-  expire: joi.date().required(),
-  password: joi.object().keys({
-    iv: joi.string().required(),
-    Encrypt: joi.string().required(),
-  }).required(),
-  ssh: joi.object().keys({
-    connections: joi.number().required()
-  }).required(),
-  wireguard: joi.array().items(joi.object().keys({
-    keys: joi.object().keys({
-      Preshared: joi.string().required(),
-      Private: joi.string().required(),
-      Public: joi.string().required()
-    }),
-    ip: joi.object().keys({
-      v4: joi.object().keys({
-        ip: joi.string().required(),
-        mask: joi.string().required(),
-      }),
-      v6: joi.object().keys({
-        ip: joi.string().required(),
-        mask: joi.string().required(),
-      })
-    })
-  }))
+const SchemaUser = new mongoose.Schema<userType>({
+  // Basic Info
+  username: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  expire: {
+    type: Date,
+    required: true
+  },
+  password: {
+    iv: {
+      type: String,
+      required: true
+    },
+    Encrypt: {
+      type: String,
+      required: true
+    }
+  },
+  // SSH
+  ssh: {
+    connections: {
+      type: Number,
+      required: true
+    }
+  },
+  // Wireguard Config
+  wireguard: [
+    {
+      keys: {
+        Preshared: {
+          type: String,
+          unique: true,
+          required: true
+        },
+        Private: {
+          type: String,
+          unique: true,
+          required: true
+        },
+        Public: {
+          type: String,
+          unique: true,
+          required: true
+        }
+      },
+      ip: {
+        v4: {
+          ip: {
+            type: String,
+            unique: true,
+            required: true
+          },
+          mask: {
+            type: String,
+            required: true
+          }
+        },
+        v6: {
+          ip: {
+            type: String,
+            unique: true,
+            required: true
+          },
+          mask: {
+            type: String,
+            required: true
+          }
+        }
+      }
+    }
+  ]
 });
+const UsersSchema = Connection.model("Users", SchemaUser);
 
 // on actions
 const onChangecallbacks: Array<(callback: {operationType: "delete"|"insert"|"update"; fullDocument: userType;}) => void> = [];
@@ -69,7 +117,7 @@ function onRun(operationType: "delete"|"insert"|"update", data: userType) {
 }
 
 export async function getUsers(): Promise<Array<userType>> {
-  const data = await UsersSchema.collection.find().toArray() as any;
+  const data = await UsersSchema.collection.find().toArray() as any as Array<userType & {_id: any; __v: number}>;
   return data.map(user => {
     user.expire = new Date(user.expire);
     if (user._id) delete user._id;
@@ -89,7 +137,6 @@ export async function getUsersDecrypt() {
 
 export async function findOne(username: string): Promise<userType> {
   const find = await UsersSchema.collection.findOne({username}) as any;
-  console.log(find)
   return find||undefined;
 }
 
@@ -142,8 +189,7 @@ export async function registersUser(data: {username: string; expire: Date; passw
       return ipsArray;
     })()
   };
-  const validateRe = userSchemaValidator.validate(DataCreate, {abortEarly: true});
-  if (validateRe.error) throw new Error(validateRe.error.details.map(detail => detail.message).join("\n\n"));
+  await UsersSchema.validate(DataCreate);
   await UsersSchema.collection.insertOne({...DataCreate});
   onRun("insert", {...DataCreate});
   return {...DataCreate};

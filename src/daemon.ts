@@ -5,9 +5,7 @@ import * as WireguardIpmaneger from "./WireguardIpmaneger";
 import * as PasswordEncrypt from "./PasswordEncrypt";
 
 export const httpServer = http.createServer();
-const io = new socketIO.Server(httpServer, {
-  transports: ["websocket", "polling"]
-});
+const io = new socketIO.Server(httpServer, {transports: ["websocket", "polling"]});
 
 io.use((socket, next) => {
   const { DAEMON_PASSWORD="", DAEMON_USER="" } = process.env;
@@ -16,13 +14,18 @@ io.use((socket, next) => {
   next();
 });
 
-const wireguardSend = async () => ({
-  users: await UserMongo.getUsers(),
-  WireguardIpConfig: {
-    keys: await UserMongo.wireguardInterfaceConfig(),
-    ip: await WireguardIpmaneger.getWireguardip()
-  }
-});
+async function wireguardSend() {
+  const users = await UserMongo.getUsers();
+  const keys = await UserMongo.wireguardInterfaceConfig();
+  const ips = await WireguardIpmaneger.getWireguardip();
+  return {
+    users: users,
+    WireguardIpConfig: {
+      keys: keys,
+      ip: ips
+    }
+  };
+};
 
 io.on("connection", async socket => {
   const wireguardConfig = await wireguardSend();

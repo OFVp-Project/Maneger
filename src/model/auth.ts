@@ -1,8 +1,9 @@
 import crypto from "crypto";
 import { EncryptPassword, DecryptPassword } from "../PasswordEncrypt";
-import { authSchema } from "../mongo";
+import mongoose from "mongoose";
+import { Connection } from "../mongo";
 
-type AuthToken = {
+export type AuthToken = {
   token: string;
   email: string;
   password: string|{
@@ -12,6 +13,45 @@ type AuthToken = {
   privilages: "root"|"user";
   createdAt?: string;
 };
+
+const SchemaAuth = new mongoose.Schema<AuthToken>({
+  // E-Mail Token
+  token: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  // E-Mail
+  email: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  // Password
+  password: {
+    iv: {
+      type: String,
+      required: true
+    },
+    Encrypt: {
+      type: String,
+      required: true
+    }
+  },
+  privilages: {
+    type: String,
+    default: "user"
+  },
+  createdAt: {
+    type: String,
+    default: () => (new Date).toString()
+  }
+}, {
+  versionKey: false,
+  autoIndex: true,
+  bufferCommands: false,
+});
+const authSchema = Connection.model("Auth", SchemaAuth);
 
 // on actions
 const onChangecallbacks: Array<(callback: {operationType: "delete"|"insert"|"update"; fullDocument: AuthToken;}) => void> = [];

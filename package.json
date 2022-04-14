@@ -48,7 +48,6 @@
     "express-rate-limit": "^6.3.0",
     "express-session": "^1.17.2",
     "ip-matching": "^2.1.2",
-    "joi": "^17.6.0",
     "js-yaml": "^4.1.0",
     "mongoose": "^6.2.11",
     "netmask": "^2.0.2",
