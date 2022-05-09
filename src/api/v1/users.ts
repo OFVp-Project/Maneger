@@ -1,14 +1,36 @@
 import * as express from "express";
-import * as qrCode from "qrcode";
-import * as js_yaml from "js-yaml";
-import { promisify } from "util";
-import { registersUser, findOne, getUsers, getWireguardconfig, deleteUser } from "../../model/users";
+import * as usersIDs from "../../schemas/UserID";
+import * as sshManeger from "../../schemas/ssh";
+import * as Wireguard from "../../schemas/Wireguard";
+import { app as WireguardRoute } from "./wireguard";
 export const app = express.Router();
-const qrCodeCreate = promisify(qrCode.toBuffer);
 
-app.get("/Users/:User", async (req, res) => res.json(await findOne(req.params.User)));
-app.route("/").get(async ({res}) => res.json(await getUsers())).post(async (req, res) => {
-  if (req.body === undefined||Object.keys(req.body).length === 0) return res.json({message: "Invalid body"});
+app.use("/Wireguard", WireguardRoute);
+app.route("/").get(async ({res}) => {
+  const ids = await usersIDs.GetUsers();
+  const ssh = await sshManeger.getUsers();
+  const wireguard = await Wireguard.getUsers();
+  const usersMap = [];
+  for (const id of ids) {
+    const DDa = {
+      ...id,
+      ssh: ssh.find(ssh => ssh.UserID === id.UserId),
+      wireguard: wireguard.find(wireguard => wireguard.UserId === id.UserId)
+    };
+    if (!!DDa.ssh) delete DDa.ssh.UserID;
+    if (!!DDa.wireguard) delete DDa.wireguard.UserId;
+    usersMap.push(DDa);
+  }
+  return res.json(usersMap);
+}).delete(async (req, res) => {
+  const {username} = req.body;
+  const user = (await usersIDs.GetUsers()).find(user => user.Username === username);
+  if (!user) return res.status(404).json({error: "User not found"});
+  await Wireguard.DeleteKeys(user.UserId);
+  await sshManeger.deleteUser(user.UserId);
+  await usersIDs.DeleteUser(user.UserId);
+  return res.json({success: true});
+}).post(async (req, res) => {
   const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req.body as {username: string; password: string; date_to_expire: string; ssh_connections: number|string; wireguard_peers: number|string;};
   const ErrorInputs = [];
   if (!username) ErrorInputs.push({parameter: "username", message: "Username is required"});
@@ -25,78 +47,21 @@ app.route("/").get(async ({res}) => res.json(await getUsers())).post(async (req,
   if (typeof username !== "string") return res.status(400).json({message: "Username no is string"});
   if (username.trim().toLowerCase() === "root") return res.status(400).json({message: "not allowed to root username"});
   if (ErrorInputs.length > 0) return res.status(400).json({ error: ErrorInputs });
-  if (await findOne(username)) return res.status(400).json({ error: "User already exists" });
-  const userDateRegisted = await registersUser({
-    username: username,
-    password: password,
-    expire: (new Date(date_to_expire)),
-    ssh_connections: parseInt(String(ssh_connections)),
-    wireguard_peers: parseInt(String(wireguard_peers))
+  // Register ID
+  const UserId = await usersIDs.RegisterUser(username, new Date(date_to_expire));
+  // Register SSH
+  const ssh = await sshManeger.CreateUser(UserId.UserId, username, new Date(date_to_expire), password, parseInt(String(ssh_connections)));
+  // Register Wireguard
+  const wireguard = await Wireguard.AddKeys(UserId.UserId, parseInt(String(wireguard_peers)));
+
+  // Return data
+  return res.json({
+    UserId: UserId.UserId,
+    Username: username,
+    Expire: new Date(date_to_expire),
+    wireguard: wireguard,
+    ssh: {
+      ssh_connections: ssh.maxConnections,
+    },
   });
-  return res.json(userDateRegisted);
-});
-
-app.post("/delete", async (req, res) => {
-  await deleteUser(req.body.username);
-  return res.json({message: "Success to remove"});
-});
-
-app.get("/Wireguard/:Type/:User", async (req, res) => {
-  const { Type, User } = req.params;
-  const wirepeerindex = parseInt(String(req.query.peer)||"0");
-  const endpoint = process.env.WIREGUARD_HOST||String(req.query.host||req.headers.host||req.headers.Host||req.headers.hostname||req.headers.Hostname||"").replace(/\:.*/, "");
-  const Port = parseInt(process.env.WIREGUARD_PORT||"51820");
-  const ConfigUserInJson = await getWireguardconfig(User, wirepeerindex, endpoint, Port);
-  const newInterface = ConfigUserInJson.Interface.Address.map(Ip => `${Ip.ip}/${Ip.mask}`)
-  try {
-    // Create Client Config
-    if (Type === "wireguard"||Type === "qrcode") {
-      const WireguardConfig = ([
-        "[Interface]",
-        `PrivateKey = ${ConfigUserInJson.Interface.PrivateKey}`,
-        `Address = ${newInterface.join(",")}`,
-        `DNS = ${ConfigUserInJson.Interface.DNS.join(",")}`,
-        "",
-        "[Peer]",
-        `PublicKey = ${ConfigUserInJson.Peer.PublicKey}`,
-        `PresharedKey = ${ConfigUserInJson.Peer.PresharedKey}`,
-        `Endpoint = ${ConfigUserInJson.Peer.Endpoint}:${ConfigUserInJson.Peer.Port}`,
-        `AllowedIPs = ${ConfigUserInJson.Peer.AllowedIPs.join(",")}`
-      ]).join("\n");
-      if (Type === "qrcode") {
-        res.setHeader("Content-Type", "image/png");
-        return res.send(await qrCodeCreate(WireguardConfig, { type: "png" }));
-      }
-      res.setHeader("Content-Type", "text/plain");
-      return res.send(WireguardConfig);
-    }
-    else if (Type === "json") return res.json(ConfigUserInJson);
-    else if (Type === "yaml") {
-      res.setHeader("Content-Type", "text/yaml");
-      return res.send(js_yaml.dump(ConfigUserInJson));
-    }
-    else if (Type === "openwrt18") {
-      const RandomInterfaceName = Math.random().toString(36).substring(2, 15).slice(0, 8);
-      res.setHeader("Content-Type", "text/plain");
-      return res.send(([
-        `config interface '${RandomInterfaceName}'`,
-        `  option proto 'wireguard'`,
-        `  option private_key '${ConfigUserInJson.Interface.PrivateKey}'`,
-        ...newInterface.map(Address => `  list addresses '${Address}'`),
-        "",
-        `config wireguard_${RandomInterfaceName}`,
-        `  option description '${RandomInterfaceName}Peer'`,
-        `  option public_key '${ConfigUserInJson.Peer.PublicKey}'`,
-        `  option preshared_key '${ConfigUserInJson.Peer.PresharedKey}'`,
-        ...ConfigUserInJson.Peer.AllowedIPs.map(IP => `  list allowed_ips '${IP}'`),
-        `  option endpoint_host '${ConfigUserInJson.Peer.Endpoint}'`,
-        `  option endpoint_port '${ConfigUserInJson.Peer.Port}'`,
-        "  option persistent_keepalive '25'",
-        "  option route_allowed_ips '1'"
-      ]).join("\n"));
-    }
-    return res.status(400).json({ error: "Valid: wireguard, qrcode, openwrt18, json, yaml" });
-  } catch (err) {
-    return res.status(400).json({ error: String(err.stack||err).split(/\r\n|\n/gi) });
-  }
 });

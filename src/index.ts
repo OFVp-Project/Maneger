@@ -10,13 +10,12 @@ if (!process.env.WIREGUARD_HOST) process.env.WIREGUARD_HOST = "";
 if (!process.env.WIREGUARD_PORT) process.env.WIREGUARD_PORT = "";
 if (!process.env.OPENSSH_HOST) process.env.OPENSSH_HOST = "";
 if (!process.env.OPENSSH_PORT) process.env.OPENSSH_PORT = "";
-import * as Daemon from "./daemon";
 import * as API from "./api/index";
 import * as MongoConnect from "./mongo";
 
 (async ()=> {
   console.log("Connecting in mongo database");
   await MongoConnect.ConnectionStatus().then(() => console.log("Sucess to connect in database"));
-  Daemon.httpServer.listen(5000, () => console.log("Daemon Listening on port 5000, dont expose to internet!"));
   API.Server.listen(3000, () => console.info("API listen in port 3000"));
+  API.Daemon.listen(5000, () => console.log("Daemon Listening on port 5000, dont expose to internet!"));
 })();

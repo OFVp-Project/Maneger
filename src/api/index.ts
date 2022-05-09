@@ -1,22 +1,23 @@
 import path from "path";
 import http from "http";
 import express from "express";
-import SocketIo from "socket.io";
 import RateLimit from "express-rate-limit";
 import BodyParse from "body-parser";
 import cors from "cors";
 import ExpressSession, { Session } from "express-session";
 import sessionStore from "session-file-store";
+import * as yaml from "yaml";
 import * as Auth from "../model/auth";
 import * as userAuth from "./auth";
 import * as usersv1 from "./v1/users";
 import * as authv1 from "./v1/auth";
 import * as metric from "./metric";
+import * as Wireguard from "../schemas/Wireguard";
 
-// Express and Socket.io
+// Express
 export const app = express();
+export const Daemon = express();
 export const Server = http.createServer(app);
-export const io = new SocketIo.Server(Server);
 export const session = Session;
 const storagePath = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
 
@@ -28,15 +29,40 @@ declare module "express-session" {
   }
 }
 
+function NormaliseJson(objRec, keyToDel: Array<string>) {
+  return JSON.parse(JSON.stringify(objRec, (key, value) => {
+    if (keyToDel.includes(key)) return undefined;
+    else if (typeof value === "string") return value.replace(/\r\n/g, "\n");
+    return value;
+  }));
+}
+
+Daemon.use((req, res, next) => {
+  if (!process.env.DAEMON_PASSWORD && !process.env.DAEMON_USER) return next();
+  else if(process.env.DAEMON_PASSWORD === req.headers.daemon_pass && process.env.DAEMON_USER === req.headers.daemon_user) return next();
+  else return res.status(400).json({error: "Invalid credentials"})
+});
+Daemon.use(cors());
+Daemon.use(BodyParse.urlencoded({extended: true}));
+Daemon.use(BodyParse.json());
+Daemon.get("/wginternal", ({res}) => Wireguard.wireguardInterfaceConfig().then(config => res.json(config)));
+
 app.use(cors());
 app.use(BodyParse.urlencoded({extended: true}));
 app.use(BodyParse.json());
-app.use(({res, next}) => {
+app.use((req, res, next) => {
   res.json = (body) => {
-    if (!res.get("Content-Type")) {
-      res.set("Content-Type", "application/json");
+    body = NormaliseJson(body, ["__v", "_id"]);
+    if (req.query.type === "yaml"||req.query.type === "yml") {
+      res.setHeader("Content-Type", "text/yaml");
+      res.send(yaml.stringify(body));
+      return res;
     }
-    res.send(JSON.stringify(body, (key, value) => typeof value === "bigint" ? value.toString() : value, 2));
+    res.set("Content-Type", "application/json");
+    res.send(JSON.stringify(body, (_, value) => {
+      if (typeof value === "bigint") return value.toString();
+      return value;
+    }, 2));
     return res;
   }
   return next();
@@ -102,16 +128,4 @@ app.use(function (err, req, res, next) {
   });
   console.error(err.stack||err);
   return;
-});
-
-// Socket.io Auth
-io.use(async function (socket, next) {
-  const { auth } = socket.handshake;
-  if (!auth) return next(new Error("auth is not defined"));
-  if (!auth.email) return next(new Error("auth.email is not defined"));
-  if (!auth.password) return next(new Error("auth.password is not defined"));
-  if (typeof auth.email !== "string") return next(new Error("auth.email is not a string"));
-  if (typeof auth.password !== "string") return next(new Error("auth.password is not a string"));
-  if (!!(await Auth.checkAuth(auth.email, auth.password))) return next();
-  return next(new Error("Token is not valid"));
 });

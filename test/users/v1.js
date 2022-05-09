@@ -24,11 +24,11 @@ async function getWireguardConfig(username) {
   };
 }
 async function deleteuser(username) {
-  await http_requests.postBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v1/delete`, {username: username});
+  await http_requests.deleteBuffer(`${process.env.DAEMON_HOST||"http://localhost:3000"}/users/v1`, {username: username});
 }
 
 /**
- * @param {Array<string>} Users 
+ * @param {Array<string>} Users
  * @returns {Promise<any>}
  */
 module.exports.main = async randomUsername => {
