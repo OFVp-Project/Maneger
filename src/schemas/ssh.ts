@@ -13,7 +13,7 @@ type sshType = {
   }
 };
 
-const sshSchema = Connection.model<sshType>("SSH", new mongoose.Schema<sshType>({
+export const sshSchema = Connection.model<sshType>("ssh", new mongoose.Schema<sshType>({
   UserID: {
     type: String,
     required: true,
@@ -57,7 +57,7 @@ export async function CreateUser(UserID: string, Username: string, DateExpire: D
 }
 
 export async function getUsers(): Promise<Array<sshType>> {
-  return await sshSchema.find().lean();
+  return await sshSchema.collection.find().toArray() as any;
 }
 
 export async function deleteUser(UserID: string): Promise<sshType> {

@@ -15,70 +15,25 @@ jobs:
         with:
           submodules: true
 
-      - name: Setup QEMU to Docker
-        uses: docker/setup-qemu-action@v2
+      - name: Setup Node.JS and NPM
+        uses: actions/setup-node@v3.1.1
+        with:
+          node-version: 16.x
 
-      - name: Setup docker buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Install node packages
+        run: npm install
 
       - name: Start local MongoDB Server
         run: |
           docker run --rm --name ofvp_mongodb -d -p 27017:27017 mongo
           IP="$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ofvp_mongodb | sed "s|'||g")"
           echo "MongoDB IP: ${IP}"
-          echo "MONGO_IP=${IP}" >> $GITHUB_ENV
+          echo "MONGOIP=${IP}" >> $GITHUB_ENV
 
-      - name: Setup Node.JS and NPM
-        uses: actions/setup-node@v3.1.1
-        with:
-          node-version: 16.x
-
-      - name: Build test image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          tags: ghcr.io/ofvp-project/deamonmaneger:local
-          push: false
-          target: server
-          load: true
-
-      - name: Up Docker Container
-        timeout-minutes: 1
+      - name: Run test
+        run: npm run test
         env:
           PASSWORD_ENCRYPT: "dev"
           COOKIE_SECRET: "dev"
           MongoDB_URL: "mongodb://${{ env.MONGO_IP }}:27017/test"
           NODE_ENV: "testing"
-        run: |
-          docker run --name=daemon_ofvp -d -p 3000:3000/tcp -e PASSWORD_ENCRYPT -e COOKIE_SECRET -e MongoDB_URL -e NODE_ENV ghcr.io/ofvp-project/deamonmaneger:local
-          docker logs --follow daemon_ofvp &
-          while true; do
-            if docker ps | grep "daemon_ofvp" | grep -q "Exit";then
-              docker logs daemon_ofvp
-              exit 1
-            fi
-            if (docker logs daemon_ofvp 2>&1| grep -q "3000"); then
-              break
-            fi
-          done
-          IP="$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' daemon_ofvp | sed "s|'||g")"
-          echo "Daemon IP: ${IP}"
-          echo "DAEMON_IP=${IP}" >> $GITHUB_ENV
-          exit 0
-
-      - name: Install node packages
-        run: npm install
-
-      - name: Create 100 Documents
-        timeout-minutes: 5
-        env:
-          REQUESTS: 100
-          DONT_DELETE: true
-          DAEMON_HOST: "http://${{ env.DAEMON_IP }}:3000"
-        run: |
-          if ! node test/index.js; then
-            echo "~~~~~~~~~~~~ Docker Log ~~~~~~~~~~~~"
-            echo
-            docker logs daemon_ofvp
-            exit 1
-          fi

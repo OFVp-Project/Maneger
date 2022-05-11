@@ -5,11 +5,50 @@ import * as Wireguard from "../../schemas/Wireguard";
 import { app as WireguardRoute } from "./wireguard";
 export const app = express.Router();
 
+function ValidateRegister(req: {username: string; password: string; date_to_expire: string; ssh_connections: number|string; wireguard_peers: number|string;}) {
+  const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req;
+  const ErrorInputs:Array<{parameter: string, message: string}> = [];
+  if (!username) ErrorInputs.push({parameter: "username", message: "Username is required"});
+  if (typeof username !== "string") ErrorInputs.push({parameter: "username", message: "Username must be a string"});
+  if (!password) ErrorInputs.push({parameter: "password", message: "Password is required"});
+  if (typeof password !== "string") ErrorInputs.push({parameter: "password", message: "Password must be a string"});
+  if (!date_to_expire) ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is required"});
+  const UserDate = new Date(date_to_expire);
+  const futureDate = new Date(new Date().getTime() + (1000 * 60 * 60 * 24 * 2));
+  if (UserDate.toString() === "Invalid Date") ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is invalid, please use YYYY-MM-DD or javascript Date object"});
+  else if (UserDate.getTime() <= futureDate.getTime()) ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is in the future, date input: "+UserDate.toString()+", min require date: "+futureDate.toString()});
+  if (parseInt(String(ssh_connections)) !== 0) {if (isNaN(parseInt(String(ssh_connections)))) ErrorInputs.push({parameter: "ssh_connections", message: "Ssh connections is required"});}
+  if (parseInt(String(wireguard_peers)) !== 0) {if (isNaN(parseInt(String(wireguard_peers)))) ErrorInputs.push({parameter: "wireguard_peers", message: "Count to get keys and ips to wireguard"});}
+  return ErrorInputs;
+}
+
 app.use("/Wireguard", WireguardRoute);
-app.route("/").get(async ({res}) => {
-  const ids = await usersIDs.GetUsers();
-  const ssh = await sshManeger.getUsers();
-  const wireguard = await Wireguard.getUsers();
+app.route("/").post(async (req, res) => {
+  const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req.body as {username: string; password: string; date_to_expire: string; ssh_connections: number|string; wireguard_peers: number|string;};
+  const ErrorInputs = ValidateRegister({username, password, date_to_expire, ssh_connections, wireguard_peers});
+  if (ErrorInputs.length > 0) return res.status(400).json(ErrorInputs);
+  if (username.trim().toLowerCase().trim() === "root") return res.status(400).json({message: "not allowed to root username"});
+  if (!!(await usersIDs.UserSchema.findOne({Username: username}))) return res.status(400).json({message: "username already exists"});
+  // Register ID
+  const UserId = await usersIDs.RegisterUser(username, new Date(date_to_expire));
+  // Register SSH and Wireguard
+  const [ssh, wireguard] = await Promise.all([
+    sshManeger.CreateUser(UserId.UserId, username, new Date(date_to_expire), password, parseInt(String(ssh_connections))),
+    Wireguard.AddKeys(UserId.UserId, parseInt(String(wireguard_peers)))
+  ]);
+
+  // Return data
+  return res.json({
+    UserId: UserId.UserId,
+    Username: username,
+    Expire: new Date(date_to_expire),
+    Wireguard: wireguard,
+    SSH: {
+      maxConnections: ssh.maxConnections,
+    }
+  });
+}).get(async ({res}) => {
+  const [ids, ssh, wireguard] = await Promise.all([usersIDs.GetUsers(), sshManeger.getUsers(), Wireguard.getUsers()]);
   const usersMap = [];
   for (const id of ids) {
     const DDa = {
@@ -24,44 +63,8 @@ app.route("/").get(async ({res}) => {
   return res.json(usersMap);
 }).delete(async (req, res) => {
   const {username} = req.body;
-  const user = (await usersIDs.GetUsers()).find(user => user.Username === username);
+  const user = await usersIDs.UserSchema.findOne({Username: username});
   if (!user) return res.status(404).json({error: "User not found"});
-  await Wireguard.DeleteKeys(user.UserId);
-  await sshManeger.deleteUser(user.UserId);
-  await usersIDs.DeleteUser(user.UserId);
-  return res.json({success: true});
-}).post(async (req, res) => {
-  const { username, password, date_to_expire, ssh_connections, wireguard_peers } = req.body as {username: string; password: string; date_to_expire: string; ssh_connections: number|string; wireguard_peers: number|string;};
-  const ErrorInputs = [];
-  if (!username) ErrorInputs.push({parameter: "username", message: "Username is required"});
-  if (!password) ErrorInputs.push({parameter: "password", message: "Password is required"});
-  if (!date_to_expire) ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is required"});
-  if (date_to_expire) {
-    const UserDate = new Date(date_to_expire);
-    const futureDate = new Date(new Date().getTime() + (1000 * 60 * 60 * 24 * 2));
-    if (UserDate.toString() === "Invalid Date") ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is invalid, please use YYYY-MM-DD or javascript Date object"});
-    else if (UserDate.getTime() <= futureDate.getTime()) ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is in the future, date input: "+UserDate.toString()+", min require date: "+futureDate.toString()});
-  }
-  if (parseInt(String(ssh_connections)) !== 0) {if (isNaN(parseInt(String(ssh_connections)))) ErrorInputs.push({parameter: "ssh_connections", message: "Ssh connections is required"});}
-  if (parseInt(String(wireguard_peers)) !== 0) {if (isNaN(parseInt(String(wireguard_peers)))) ErrorInputs.push({parameter: "wireguard_peers", message: "Count to get keys and ips to wireguard"});}
-  if (typeof username !== "string") return res.status(400).json({message: "Username no is string"});
-  if (username.trim().toLowerCase() === "root") return res.status(400).json({message: "not allowed to root username"});
-  if (ErrorInputs.length > 0) return res.status(400).json({ error: ErrorInputs });
-  // Register ID
-  const UserId = await usersIDs.RegisterUser(username, new Date(date_to_expire));
-  // Register SSH
-  const ssh = await sshManeger.CreateUser(UserId.UserId, username, new Date(date_to_expire), password, parseInt(String(ssh_connections)));
-  // Register Wireguard
-  const wireguard = await Wireguard.AddKeys(UserId.UserId, parseInt(String(wireguard_peers)));
-
-  // Return data
-  return res.json({
-    UserId: UserId.UserId,
-    Username: username,
-    Expire: new Date(date_to_expire),
-    wireguard: wireguard,
-    ssh: {
-      ssh_connections: ssh.maxConnections,
-    },
-  });
+  const ResDel = await Promise.all([Wireguard.DeleteKeys(user.UserId), sshManeger.deleteUser(user.UserId), usersIDs.DeleteUser(user.UserId)])
+  return res.json(ResDel);
 });

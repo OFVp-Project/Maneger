@@ -8,7 +8,7 @@ type userType = {
   Expire: Date
 };
 
-const UserSchema = Connection.model<userType>("GeneralUser", new mongoose.Schema<userType>({
+export const UserSchema = Connection.model<userType>("GeneralUser", new mongoose.Schema<userType>({
   UserId: {
     type: String,
     required: true,
@@ -34,7 +34,7 @@ export async function RegisterUser(Username: string, DateExpire: Date): Promise<
 }
 
 export async function GetUsers(): Promise<Array<userType>> {
-  return await UserSchema.find().lean();
+  return await UserSchema.collection.find().toArray() as any;
 }
 
 export async function DeleteUser(UserId: string): Promise<userType> {

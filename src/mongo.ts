@@ -12,7 +12,7 @@ export const Connection = mongoose.createConnection(MongoDB_URL, {
   serializeFunctions: true,
   zlibCompressionLevel: 9
 });
-Connection.set("maxTimeMS", 3 * 1000);
+Connection.set("maxTimeMS", 30 * 1000);
 
 /**
  * @type {Status: "Connecting"|"Connected"|"Error"; Error: null|Error;}

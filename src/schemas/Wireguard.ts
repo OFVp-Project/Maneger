@@ -2,7 +2,6 @@ import * as crypto from "crypto";
 import mongoose from "mongoose";
 import * as IpMatching from "ip-matching";
 import { Connection } from "../mongo";
-import { isPromise } from "util/types";
 import fs from "fs";
 import path from "path";
 
@@ -22,7 +21,7 @@ type wireguardType = {
   Keys: WireguardKeys
 };
 
-const WireguardSchema = Connection.model<wireguardType>("Wireguard", new mongoose.Schema<wireguardType>({
+export const WireguardSchema = Connection.model<wireguardType>("Wireguard", new mongoose.Schema<wireguardType>({
   UserId: {
     type: String,
     required: true,
@@ -99,14 +98,6 @@ function convert_ipv4_to_ipv6(ipV4 = ""){
   throw "Invalid Address";
 }
 
-async function createIp(find: (ip: string) => Promise<true|false>|true|false) {
-  const ip = `10.0.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
-  const res = find(ip);
-  const isFound = (isPromise(res) ? await res : res);
-  if (!isFound) return ip;
-  else return createIp(find);
-}
-
 // Create Random Keys
 const randomKeys = () => new Promise<{privateKey: Buffer, publicKey: Buffer}>((res, rej) => crypto.generateKeyPair("x25519", {publicKeyEncoding: {format: "der", type: "spki"}, privateKeyEncoding: {format: "der", type: "pkcs8"}}, (err: Error, publicKey: Buffer, privateKey: Buffer) => {if (err) rej(err); else res({privateKey, publicKey});}));
 
@@ -123,11 +114,26 @@ export async function wireguardInterfaceConfig(): Promise<{Preshared: string; Pr
   return keys;
 }
 
+async function Random255() {
+  const value = Math.floor(Math.random() * 255);
+  if (value > 255) return Random255();
+  return value;
+}
+async function createIp(filterFunc?: (value: string) => true|false|Promise<true|false>) {
+  if (!filterFunc) filterFunc = () => false;
+  const ip = `10.${await Random255()}.${await Random255()}.${await Random255()}`;
+  const isFound = !!(await WireguardSchema.collection.findOne({Keys: [{ip: {v4: {ip: ip}}}]}));
+  if (!!isFound === false) {
+    if (!!(await filterFunc(ip)) === true) return createIp(filterFunc);
+    return ip;
+  } else return createIp();
+}
+
 export async function AddKeys(UserId: string, KeysToRegister: number) {
   if (!!(await WireguardSchema.collection.findOne({UserId: UserId}))) throw new Error("User already exists");
   const Keys: WireguardKeys = [];
   for (let i = 0; i < KeysToRegister; i++) {
-    const ipV4 = await createIp(async ip => {const res = await WireguardSchema.collection.findOne({Keys: [{ip: {v4: {ip: ip}}}]}); return !!res;});
+    const ipV4 = await createIp(ip => !!Keys.find(key => key.ip.v4.ip === ip));
     const ipV6 = convert_ipv4_to_ipv6(ipV4);
     const keysPairOne = await randomKeys(), keysPairTwo = await randomKeys();
     const KeyGen = {Preshared: Buffer.from(keysPairTwo.privateKey.slice(16)).toString("base64"), Private: Buffer.from(keysPairOne.privateKey).slice(16).toString("base64"), Public: Buffer.from(keysPairOne.publicKey).slice(12).toString("base64"),};
@@ -156,5 +162,5 @@ export async function findOne(UserID: string): Promise<WireguardKeys> {
 }
 
 export async function DeleteKeys(UserID: string) {
-  await WireguardSchema.collection.deleteOne({UserId: UserID});
+  return await WireguardSchema.findOneAndDelete({UserId: UserID}).lean();
 }

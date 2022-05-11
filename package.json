@@ -3,9 +3,11 @@
   "version": "4.1.0",
   "description": "daemon for managing and communicating with other servers.",
   "main": "dist/index.js",
+  "private": true,
   "scripts": {
     "build": "tsc",
-    "dev": "nodemon"
+    "dev": "nodemon",
+    "test": "node testProject.js"
   },
   "nodemonConfig": {
     "delay": 2500,
@@ -61,7 +63,7 @@
   "devDependencies": {
     "@types/express": "^4.17.13",
     "@types/express-session": "^1.17.4",
-    "@types/node": "^17.0.31",
+    "@types/node": "^17.0.32",
     "@types/session-file-store": "^1.2.2",
     "axios": "^0.27.2",
     "nodemon": "^2.0.16"
