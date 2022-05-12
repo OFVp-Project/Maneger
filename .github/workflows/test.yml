@@ -35,5 +35,5 @@ jobs:
         env:
           PASSWORD_ENCRYPT: "dev"
           COOKIE_SECRET: "dev"
-          MongoDB_URL: "mongodb://${{ env.MONGO_IP }}:27017/test"
+          MongoDB_URL: "mongodb://${{ env.MONGOIP }}:27017/test"
           NODE_ENV: "testing"
