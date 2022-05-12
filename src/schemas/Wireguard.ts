@@ -114,35 +114,46 @@ export async function wireguardInterfaceConfig(): Promise<{Preshared: string; Pr
   return keys;
 }
 
-async function Random255() {
-  const value = Math.floor(Math.random() * 255);
+async function Random255(Min: number = 1, Max: number = 255) {
+  const value = Math.floor((Math.random() * 808) * (Max - Min + 1)) + Min;
   if (value > 255) return Random255();
-  return value;
+  return value % 256;
 }
 async function createIp(filterFunc?: (value: string) => true|false|Promise<true|false>) {
   if (!filterFunc) filterFunc = () => false;
-  const ip = `10.${await Random255()}.${await Random255()}.${await Random255()}`;
-  const isFound = !!(await WireguardSchema.collection.findOne({Keys: [{ip: {v4: {ip: ip}}}]}));
-  if (!!isFound === false) {
-    if (!!(await filterFunc(ip)) === true) return createIp(filterFunc);
-    return ip;
-  } else return createIp();
+  let ip = "";const fistIp = await Random255();
+  if (fistIp <= 192 && fistIp >= 168) ip = "192.168."+await Random255()+"."+await Random255();
+  else if (fistIp <= 172 && fistIp >= 16) ip = "172."+await Random255()+"."+await Random255()+"."+await Random255();
+  else ip = "10."+await Random255()+"."+await Random255(16, 31)+"."+await Random255();
+  if (!/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/.test(ip)) return createIp(filterFunc);
+  const isFound = !!(await WireguardSchema.collection.findOne({Keys: {ip: {v4: {ip: ip}}}}));
+  if (!!isFound === false) {if (!!(await filterFunc(ip)) === true) return createIp(filterFunc); return ip;} else return createIp();
 }
 
+const ips = [];
 export async function AddKeys(UserId: string, KeysToRegister: number) {
   if (!!(await WireguardSchema.collection.findOne({UserId: UserId}))) throw new Error("User already exists");
   const Keys: WireguardKeys = [];
   for (let i = 0; i < KeysToRegister; i++) {
-    const ipV4 = await createIp(ip => !!Keys.find(key => key.ip.v4.ip === ip));
-    const ipV6 = convert_ipv4_to_ipv6(ipV4);
     const keysPairOne = await randomKeys(), keysPairTwo = await randomKeys();
-    const KeyGen = {Preshared: Buffer.from(keysPairTwo.privateKey.slice(16)).toString("base64"), Private: Buffer.from(keysPairOne.privateKey).slice(16).toString("base64"), Public: Buffer.from(keysPairOne.publicKey).slice(12).toString("base64"),};
-
+    const ipV4 = await createIp(ip => !!Keys.find(key => key.ip.v4.ip === ip) && ips.includes(ip));
+    ips.push(ipV4);
+    const ipV6 = convert_ipv4_to_ipv6(ipV4);
     Keys.push({
-      keys: KeyGen,
+      keys: {
+        Preshared: Buffer.from(keysPairTwo.privateKey.slice(16)).toString("base64"),
+        Private: Buffer.from(keysPairOne.privateKey).slice(16).toString("base64"),
+        Public: Buffer.from(keysPairOne.publicKey).slice(12).toString("base64")
+      },
       ip: {
-        v4: {ip: ipV4, mask: IpMatching.getMatch(ipV4).convertToMasks()[0].ip.bits.toString()},
-        v6: {ip: ipV6, mask: IpMatching.getMatch(ipV6).convertToMasks()[0].ip.bits.toString()}
+        v4: {
+          ip: ipV4,
+          mask: IpMatching.getMatch(ipV4).convertToMasks()[0].ip.bits.toString()
+        },
+        v6: {
+          ip: ipV6,
+          mask: IpMatching.getMatch(ipV6).convertToMasks()[0].ip.bits.toString()
+        }
       }
     });
   }

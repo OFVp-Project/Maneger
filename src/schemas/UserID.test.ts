@@ -23,16 +23,22 @@ export async function main() {
 // Run stress script test
 export async function long(Keys: Array<string>) {
   // Create users test
-  console.log("Creating Users");
+  console.log("[UsersID]: Creating Users");
+  const startCreate = Date.now();
   const AddUsers = await Promise.all(Keys.map((key) => UserID.RegisterUser(key, new Date(Date.now() + 1000 * 60 * 60 * 24 * 7))));
+  console.log("[UsersID]: Execution time: %o", Date.now() - startCreate);
 
   // Get All users
-  console.log("Getting All Users");
+  console.log("[UsersID]: Getting All Users");
+  const startGetUsers = Date.now();
   const GetUsers = await UserID.GetUsers();
+  console.log("[UsersID]: Execution time: %o", Date.now() - startGetUsers);
 
   // Delete Users
-  console.log("Deleting Users");
+  console.log("[UsersID]: Deleting Users");
+  const startDelete = Date.now();
   const DeleteUsers = await Promise.all(Keys.map((key) => UserID.DeleteUser(key)));
+  console.log("[UsersID]: Execution time: %o", Date.now() - startDelete);
 
   return {AddUsers, GetUsers, DeleteUsers};
 }

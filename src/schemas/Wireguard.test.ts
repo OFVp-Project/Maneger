@@ -33,24 +33,43 @@ export async function main() {
 // Run stress script test
 export async function long(Keys: Array<string>) {
   // Get Root Key
-  console.log("Get Root Key");
+  console.log("[Wireguard]: Get Root Key");
+  const startKeys = Date.now();
   const RootKeys = await Promise.all(Keys.map(() => Wireguard.wireguardInterfaceConfig()));
+  console.log("[Wireguard]: Execution time: %o", Date.now() - startKeys);
 
   // Register wireguard keys
-  console.log("Register Wireguard Keys");
-  const AddKey = await Promise.all(Keys.map((key) => Wireguard.AddKeys(key, key.length)));
+  console.log("[Wireguard]: Register Wireguard Keys");
+  const startAddKey = Date.now();
+  const AddKey = await Promise.all(Keys.map((key) => Wireguard.AddKeys(key, (Math.floor(Math.random() * 1000)%255)+2).catch(() => Wireguard.AddKeys(key, (Math.floor(Math.random() * 1000)%255)+2)).catch(err => {
+    console.log("[Wireguard]: Error: %o", err);
+    return String(err.stack||err);
+  })));
+  console.log("[Wireguard]: Execution time: %o", Date.now() - startAddKey);
 
   // Get Wireguard Keys
-  console.log("Find Wireguard Keys");
-  const find = await Promise.all(Keys.map((key) => Wireguard.findOne(key)));
+  console.log("[Wireguard]: Find Wireguard Keys");
+  const startFind = Date.now();
+  const find = await Promise.all(Keys.map((key) => Wireguard.findOne(key).catch(err => {
+    console.log("[Wireguard]: Error: %o", err);
+    return String(err.stack||err);
+  })));
+  console.log("[Wireguard]: Execution time: %o", Date.now() - startFind);
 
   // Get all keys
-  console.log("Get all keys");
+  console.log("[Wireguard]: Get all keys");
+  const startAllKeys = Date.now();
   const allKeys = await Wireguard.getUsers();
+  console.log("[Wireguard]: Execution time: %o", Date.now() - startAllKeys);
 
   // Delete key
-  console.log("Delete key");
-  const DeleteKey = await Promise.all(Keys.map((key) => Wireguard.DeleteKeys(key)));
+  console.log("[Wireguard]: Delete key");
+  const startDeleteKey = Date.now();
+  const DeleteKey = await Promise.all(Keys.map((key) => Wireguard.DeleteKeys(key).catch(err => {
+    console.log("[Wireguard]: Error: %o", err);
+    return String(err.stack||err);
+  })));
+  console.log("[Wireguard]: Execution time: %o", Date.now() - startDeleteKey);
 
-  return {RootKeys, AddKey, find, allKeys, DeleteKey};
+  return {RootKeys, AddKey, find, allKeys, DeleteKey, Ips: ([]).concat(...allKeys.map(a => a.Keys.map(b => b.ip.v4.ip)))};
 }

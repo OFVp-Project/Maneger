@@ -43,7 +43,8 @@
 	"mongodb.mongodb-vscode",
 	"ms-azuretools.vscode-docker",
 	"chrmarti.regex",
-	"formulahendry.code-runner"
+	"formulahendry.code-runner",
+	"euskadi31.json-pretty-printer"
 ],
   "settings": {
     "editor.tabSize": 2,

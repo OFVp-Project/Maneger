@@ -33,8 +33,7 @@ async function readdirRecursive(dir, filterFile) {
   return files;
 }
 
-const stressNumberRandomGem = 1000;
-
+const stressNumberRandomGem = 500;
 /**
  * @param {Array<string>} Files
  */
@@ -44,43 +43,42 @@ async function runTest(Files) {
     fs.rmSync(path.join(__dirname, ".testDir"), { recursive: true });
     fs.mkdirSync(path.join(__dirname, ".testDir"));
   }
-  let haveError = false;
+  /** @type {{short: Array<{log: string, func:() => Promise<any>}>, long: Array<{log: string, func: (usernames?: Array<string>) => Promise<any>>}}} */
+  const toRun = {long: [], short: []};
   for (const file of Files) {
     const logFile = path.join(__dirname, ".testDir", file.replace(path.join(__dirname, "dist"), "").replace(/\/|\\/gi, "_").replace(/\.test\.[tj]s$/, ""), "");
-    let shortRes = {}, longRes = {};
     try {
       /** @type {{main: () => Promise<any>, long: (usernames?: Array<string>) => Promise<any>}} */
       const { main, long } = require(file);
-      console.log("Running file test: %s", file);
-      if (typeof main === "function") {
-        const shortStart = new Date();
-        shortRes = await main();
-        const shortEnd = new Date();
-        console.log("Short test finished in %sms", shortEnd.getTime() - shortStart.getTime());
-      }
-      if (typeof long === "function") {
-        const longStart = new Date();
-        const usernames = (() => {const arr = []; for (let i = 1; i <= stressNumberRandomGem; i++) arr.push(Buffer.from((Math.random()*255).toString()).toString("hex")); return arr;})();
-        longRes = await long(usernames);
-        const longEnd = new Date();
-        console.log("Long test finished in %sms", longEnd.getTime() - longStart.getTime());
-      }
-      fs.writeFileSync(logFile+".json", JSON.stringify({shortRes, longRes}, null, 2));
+      if (typeof main === "function") toRun.short.push({
+        log: logFile+".short",
+        func: main
+      });
+      if (typeof long === "function") toRun.long.push({
+        log: logFile+".long",
+        func: long
+      });
     } catch (err) {
       console.error("Error running file test: %s", file);
       console.error(err);
       console.error();
       fs.writeFileSync(logFile+".log", String(err.stack||err));
-      haveError = true;
     }
   }
-  console.log("Test finished");
-  process.exit(haveError ? 1 : 0);
+  return toRun;
 }
 
 if (fs.existsSync(path.join(__dirname, "dist"))) fs.rmSync(path.join(__dirname, "dist"), {recursive: true, force: true});
 console.log("Building project");
 execSync("npm run build", { stdio: "inherit" });
 require("./dist/mongo.js").ConnectionStatus().then(() => {
-  return readdirRecursive(path.join(__dirname, "dist"), [/\.test\.js$/]).then(runTest);
+  return readdirRecursive(path.join(__dirname, "dist"), [/\.test\.js$/]).then(runTest).then(async Runs => {
+    await Promise.all(Runs.short.map(({func, log}) => func().then(data => fs.writeFileSync(log+".json", JSON.stringify((data||{}), null, 2))).catch(err => fs.writeFileSync(log+".error.log", String(err.stack||err)))));
+    for (const {func, log} of Runs.long) {
+      await func(new Array(stressNumberRandomGem).fill(null).map(() => Math.random().toString(36).substring(2, 15))).then(data => fs.writeFileSync(log+".json", JSON.stringify((data||{}), null, 2))).catch(err => {fs.writeFileSync(log+".error.log", String(err.stack||err)); console.error("Error running long test:\n%s", String(err)); return err;});
+      console.log("Log file path: %s\n", log);
+    }
+    console.log("Done");
+    process.exit(0);
+  });
 });
