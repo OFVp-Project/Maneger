@@ -28,7 +28,7 @@ app.route("/").post(async (req, res) => {
   const ErrorInputs = ValidateRegister({username, password, date_to_expire, ssh_connections, wireguard_peers});
   if (ErrorInputs.length > 0) return res.status(400).json(ErrorInputs);
   if (username.trim().toLowerCase().trim() === "root") return res.status(400).json({message: "not allowed to root username"});
-  if (!!(await usersIDs.UserSchema.findOne({Username: username}))) return res.status(400).json({message: "username already exists"});
+  if (!!(await usersIDs.UserSchema.findOne({Username: String(username)}))) return res.status(400).json({message: "username already exists"});
   // Register ID
   const UserId = await usersIDs.RegisterUser(username, new Date(date_to_expire));
   // Register SSH and Wireguard
@@ -63,7 +63,7 @@ app.route("/").post(async (req, res) => {
   return res.json(usersMap);
 }).delete(async (req, res) => {
   const {username} = req.body;
-  const user = await usersIDs.UserSchema.findOne({Username: username});
+  const user = await usersIDs.UserSchema.findOne({Username: String(username)});
   if (!user) return res.status(404).json({error: "User not found"});
   const ResDel = await Promise.all([Wireguard.DeleteKeys(user.UserId), sshManeger.deleteUser(user.UserId), usersIDs.DeleteUser(user.UserId)])
   return res.json(ResDel);
