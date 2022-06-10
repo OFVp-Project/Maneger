@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon",
-    "test": "node testProject.js"
+    "test": "ts-node testProject.ts"
   },
   "nodemonConfig": {
     "delay": 2500,

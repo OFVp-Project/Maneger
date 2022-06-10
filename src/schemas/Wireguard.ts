@@ -122,25 +122,31 @@ async function Random255(Min: number = 2, Max: number = 255) {
 }
 async function createIp(filterFunc?: (value: string) => true|false|Promise<true|false>) {
   if (!filterFunc) filterFunc = () => false;
-  let ip = "";const fistIp = await Random255();
-  if (fistIp <= 192 && fistIp >= 168) ip = "192.168."+await Random255()+"."+await Random255();
-  else if (fistIp <= 172 && fistIp >= 16) ip = "172."+await Random255()+"."+await Random255()+"."+await Random255();
-  else ip = "10."+await Random255()+"."+await Random255(16, 31)+"."+await Random255();
-  if (!/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/.test(ip)) return createIp(filterFunc);
+  const ips = await Promise.all((Array(4).fill(4)).map(() => Random255(2, 255)));
+  if (ips[0] <= 192 && ips[0] >= 168) {
+    ips[0] = 192;
+    ips[1] = 168;
+  } else if (ips[0] <= 172 && ips[0] >= 16) ips[0] = 172;
+  else ips[0] = 10;
+  const ip = ips.join(".");
+  console.log(ip);
   const isFound = !!(await WireguardSchema.collection.findOne({Keys: {ip: {v4: {ip: ip}}}}));
-  if (!!isFound === false) {if (!!(await filterFunc(ip)) === true) return createIp(filterFunc); return ip;} else return createIp();
+  if (!!isFound === false) {
+    if (!!(await filterFunc(ip)) === true) return createIp(filterFunc);
+    console.log("[IP Gen]: IP accept %s", ip);
+    return ip;
+  } else return createIp();
 }
 
 const ips = [];
 export async function AddKeys(UserId: string, KeysToRegister: number) {
   if (!!(await WireguardSchema.collection.findOne({UserId: UserId}))) throw new Error("User already exists");
-  const Keys: WireguardKeys = [];
-  for (let i = 0; i < KeysToRegister; i++) {
+  const Keys: WireguardKeys = await Promise.all(Array(KeysToRegister).fill(0).map(async () => {
     const keysPairOne = await randomKeys(), keysPairTwo = await randomKeys();
-    const ipV4 = await createIp(ip => !!Keys.find(key => key.ip.v4.ip === ip) && ips.includes(ip));
+    const ipV4 = await createIp(ip => !!ips.includes(ip));
     ips.push(ipV4);
     const ipV6 = convert_ipv4_to_ipv6(ipV4);
-    Keys.push({
+    return {
       keys: {
         Preshared: Buffer.from(keysPairTwo.privateKey.slice(16)).toString("base64"),
         Private: Buffer.from(keysPairOne.privateKey).slice(16).toString("base64"),
@@ -156,8 +162,8 @@ export async function AddKeys(UserId: string, KeysToRegister: number) {
           mask: IpMatching.getMatch(ipV6).convertToMasks()[0].ip.bits.toString()
         }
       }
-    });
-  }
+    }
+  }));
   await WireguardSchema.create({
     UserId,
     Keys
