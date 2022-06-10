@@ -114,9 +114,10 @@ export async function wireguardInterfaceConfig(): Promise<{Preshared: string; Pr
   return keys;
 }
 
-async function Random255(Min: number = 1, Max: number = 255) {
-  const value = Math.floor((Math.random() * 808) * (Max - Min + 1)) + Min;
-  if (value > 255) return Random255();
+async function Random255(Min: number = 2, Max: number = 255) {
+  const value = Math.floor(Math.random() * (Max - Min + 1)) + Min;
+  if (value > Max) return Random255();
+  else if (value < Min) return Random255();
   return value % 256;
 }
 async function createIp(filterFunc?: (value: string) => true|false|Promise<true|false>) {
