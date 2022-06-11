@@ -1,9 +1,13 @@
 module.exports = {
-  apps : [{
-    script: "dist/index.js",
-    watch: ".",
-    exec_mode: "cluster",
-    instances: "max",
-    name: "daemon-maneger"
-  }]
-};
+  apps: [
+    {
+      name: "backend",
+      cwd: "./",
+      // Max CPU threads
+      exec_mode: "cluster",
+      instances: "max",
+      // Script to run ts-node
+      script: "dist/index.js"
+    }
+  ]
+}

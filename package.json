@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
+    "start": "npm run build && pm2-runtime start ecosystem.config.js",
     "dev": "nodemon",
     "test": "ts-node testProject.ts"
   },

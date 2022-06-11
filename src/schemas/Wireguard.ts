@@ -99,59 +99,49 @@ function convert_ipv4_to_ipv6(ipV4 = ""){
 }
 
 // Create Random Keys
-const randomKeys = () => new Promise<{privateKey: Buffer, publicKey: Buffer}>((res, rej) => crypto.generateKeyPair("x25519", {publicKeyEncoding: {format: "der", type: "spki"}, privateKeyEncoding: {format: "der", type: "pkcs8"}}, (err: Error, publicKey: Buffer, privateKey: Buffer) => {if (err) rej(err); else res({privateKey, publicKey});}));
+const randomKeys = () => new Promise<{privateKey: string, publicKey: string}>((res, rej) => crypto.generateKeyPair("x25519", {publicKeyEncoding: {format: "der", type: "spki"}, privateKeyEncoding: {format: "der", type: "pkcs8"}}, (err: Error, publicKey: Buffer, privateKey: Buffer) => {
+  if (err) rej(err);
+  else res({
+    privateKey: Buffer.from(privateKey.slice(16)).toString("base64"),
+    publicKey: Buffer.from(publicKey.slice(12)).toString("base64")
+  });
+}));
 
 const storagePath = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
 export async function wireguardInterfaceConfig(): Promise<{Preshared: string; Private: string; Public: string;}> {
   if (fs.existsSync(path.resolve(storagePath, "wireguardInterface.json"))) return JSON.parse(fs.readFileSync(path.resolve(storagePath, "wireguardInterface.json"), "utf8"));
   const keysPairOne = await randomKeys(), keysPairTwo = await randomKeys();
-  const keys = {
-    Preshared: Buffer.from(keysPairTwo.privateKey.slice(16)).toString("base64"),
-    Private: Buffer.from(keysPairOne.privateKey).slice(16).toString("base64"),
-    Public: Buffer.from(keysPairOne.publicKey).slice(12).toString("base64"),
-  };
+  const keys = {Preshared: keysPairTwo.privateKey, Private: keysPairOne.privateKey, Public: keysPairOne.publicKey};
   fs.writeFileSync(path.resolve(storagePath, "wireguardInterface.json"), JSON.stringify(keys, null, 2));
   return keys;
 }
 
-async function Random255(Min: number = 2, Max: number = 255) {
+async function RandomRange(Min: number, Max: number) {
   const value = Math.floor(Math.random() * (Max - Min + 1)) + Min;
-  if (value > Max) return Random255();
-  else if (value < Min) return Random255();
+  if (value > Max) return RandomRange(Min, Max);
+  else if (value < Min) return RandomRange(Min, Max);
   return value % 256;
 }
 async function createIp(filterFunc?: (value: string) => true|false|Promise<true|false>) {
   if (!filterFunc) filterFunc = () => false;
-  const ips = await Promise.all((Array(4).fill(4)).map(() => Random255(2, 255)));
+  const ips = await Promise.all((Array(4).fill(null)).map(() => RandomRange(2, 255)));
   if (ips[0] <= 192 && ips[0] >= 168) {
     ips[0] = 192;
     ips[1] = 168;
-  } else if (ips[0] <= 172 && ips[0] >= 16) ips[0] = 172;
-  else ips[0] = 10;
+  } else if (ips[0] <= 172 && ips[0] >= 16) ips[0] = 172; else ips[0] = 10;
   const ip = ips.join(".");
-  console.log(ip);
-  const isFound = !!(await WireguardSchema.collection.findOne({Keys: {ip: {v4: {ip: ip}}}}));
-  if (!!isFound === false) {
-    if (!!(await filterFunc(ip)) === true) return createIp(filterFunc);
-    console.log("[IP Gen]: IP accept %s", ip);
-    return ip;
-  } else return createIp();
+  if (!!(await filterFunc(ip)) === true) return createIp(filterFunc);
+  return ip;
 }
 
-const ips = [];
 export async function AddKeys(UserId: string, KeysToRegister: number) {
   if (!!(await WireguardSchema.collection.findOne({UserId: UserId}))) throw new Error("User already exists");
-  const Keys: WireguardKeys = await Promise.all(Array(KeysToRegister).fill(0).map(async () => {
+  const createKey = async () => {
     const keysPairOne = await randomKeys(), keysPairTwo = await randomKeys();
-    const ipV4 = await createIp(ip => !!ips.includes(ip));
-    ips.push(ipV4);
+    const ipV4 = await createIp(async (ip: string) => !!(await WireguardSchema.collection.findOne({Keys: {ip: {v4: {ip: ip}}}})));
     const ipV6 = convert_ipv4_to_ipv6(ipV4);
     return {
-      keys: {
-        Preshared: Buffer.from(keysPairTwo.privateKey.slice(16)).toString("base64"),
-        Private: Buffer.from(keysPairOne.privateKey).slice(16).toString("base64"),
-        Public: Buffer.from(keysPairOne.publicKey).slice(12).toString("base64")
-      },
+      keys: {Preshared: keysPairTwo.privateKey, Private: keysPairOne.privateKey, Public: keysPairOne.publicKey},
       ip: {
         v4: {
           ip: ipV4,
@@ -163,7 +153,8 @@ export async function AddKeys(UserId: string, KeysToRegister: number) {
         }
       }
     }
-  }));
+  }
+  const Keys: WireguardKeys = await Promise.all(Array(KeysToRegister).fill(null).map(() => createKey()));
   await WireguardSchema.create({
     UserId,
     Keys
