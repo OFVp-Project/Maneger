@@ -18,7 +18,10 @@ function ValidateRegister(req: {username: string; password: string; date_to_expi
   if (UserDate.toString() === "Invalid Date") ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is invalid, please use YYYY-MM-DD or javascript Date object"});
   else if (UserDate.getTime() <= futureDate.getTime()) ErrorInputs.push({parameter: "date_to_expire", message: "Date to expire is in the future, date input: "+UserDate.toString()+", min require date: "+futureDate.toString()});
   if (parseInt(String(ssh_connections)) !== 0) {if (isNaN(parseInt(String(ssh_connections)))) ErrorInputs.push({parameter: "ssh_connections", message: "Ssh connections is required"});}
-  if (parseInt(String(wireguard_peers)) !== 0) {if (isNaN(parseInt(String(wireguard_peers)))) ErrorInputs.push({parameter: "wireguard_peers", message: "Count to get keys and ips to wireguard"});}
+  if (parseInt(String(wireguard_peers)) !== 0) {
+    if (isNaN(parseInt(String(wireguard_peers)))) ErrorInputs.push({parameter: "wireguard_peers", message: "Count to get keys and ips to wireguard"});
+    else if (parseInt(String(wireguard_peers)) > 500) ErrorInputs.push({parameter: "wireguard_peers", message: "Count to get keys and ips to wireguard must be less than 500"});
+  }
   return ErrorInputs;
 }
 

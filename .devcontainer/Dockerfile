@@ -1,55 +1,61 @@
 FROM debian:latest
-ENV DEBIAN_FRONTEND="noninteractive"
-RUN apt update && \
-  apt install -y git curl wget sudo procps zsh tar screen ca-certificates procps lsb-release xdg-utils g++ libatomic1 libnss3 libatk-bridge2.0-0 gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxrandr2 libxrender1 libxss1 libxtst6 fonts-liberation libnss3 libgbm-dev
+ARG DEBIAN_FRONTEND="noninteractive"
+RUN apt update && apt install -y git curl wget sudo procps zsh tar screen ca-certificates procps lsb-release xdg-utils g++ gconf-service
 
-# Install latest node
-RUN VERSION=$(wget -qO- https://api.github.com/repos/Sirherobrine23/DebianNodejsFiles/releases/latest |grep 'name' | grep "nodejs"|grep "$(dpkg --print-architecture)"|cut -d '"' -f 4 | sed 's|nodejs_||g' | sed -e 's|_.*.deb||g'|sort | uniq|tail -n 1); wget -q "https://github.com/Sirherobrine23/DebianNodejsFiles/releases/download/debs/nodejs_${VERSION}_$(dpkg --print-architecture).deb" -O /tmp/nodejs.deb && dpkg -i /tmp/nodejs.deb && rm -rfv /tmp/nodejs.deb && npm install -g npm@latest
+# Install node.js
+RUN wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash
 
-# Install Docker and Docker Compose
+# Install Docker, Docker Compose and minikube and kubectl
 VOLUME [ "/var/lib/docker" ]
-RUN curl https://get.docker.com | sh && \
-  compose_version=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4); \
-  wget -q "https://github.com/docker/compose/releases/download/${compose_version}/docker-compose-$(uname -s)-$(uname -m)" -O /usr/local/bin/docker-compose && \
-  chmod +x /usr/local/bin/docker-compose
+RUN wget -qO- https://get.docker.com | sh && \
+  wget -q $(wget -qO- https://api.github.com/repos/docker/compose/releases | grep 'browser_download_url' | grep -v '.sha' | grep $(uname -s) | grep $(uname -m) | cut -d '"' -f 4 | sort | tail -n1)\
+  -O /usr/local/bin/docker-compose && chmod +x -v /usr/local/bin/docker-compose && \
+  curl -Lo minikube "https://storage.googleapis.com/minikube/releases/latest/minikube-linux-$(dpkg --print-architecture)" && \
+  chmod +x minikube && mv minikube /usr/bin && \
+  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/$(dpkg --print-architecture)/kubectl" && \
+  chmod +x kubectl && mv kubectl /usr/bin
+
+# Create docker and minikube start script
+ARG MINIKUBE_ARGS="--driver=docker"
+ARG DOCKERD_ARGS="--experimental"
+RUN (echo '#''!/bin/bash';\
+echo 'EXISTDOCKER="1"';\
+echo "if command -v dockerd &> /dev/null; then";\
+echo '  if ! [[ -f "/var/run/docker.sock" ]];then';\
+echo "    (sudo dockerd ${DOCKERD_ARGS}) &";\
+echo "    (minikube start ${MINIKUBE_ARGS}) &";\
+echo "    sleep 5s";\
+echo "  fi";\
+echo "else";\
+echo '  EXISTDOCKER="0"';\
+echo '  echo "o Docker não está instalado!"';\
+echo "fi";\
+echo "";\
+echo "# Run script";\
+echo 'if ! [[ -z "\$@" ]]; then';\
+echo '  sh -c "\$@"';\
+echo "fi";\
+echo "";\
+echo "# Sleep script";\
+echo "sleep infinity";\
+echo "exit") | tee /usr/local/bin/start.sh && chmod a+x /usr/local/bin/start.sh
 
 # Add non root user
-ARG USERNAME=gitpod
-ARG USER_UID=1000
+ARG USERNAME="devcontainer"
+ARG USER_UID="1000"
 ARG USER_GID=$USER_UID
-RUN \
-  groupadd --gid $USER_GID $USERNAME && adduser --disabled-password --gecos "" --uid $USER_UID --gid $USER_GID --shell /usr/bin/zsh $USERNAME && \
-  usermod -aG sudo $USERNAME && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$USERNAME && chmod 0440 /etc/sudoers.d/$USERNAME && \
-  usermod -aG docker $USERNAME
+RUN groupadd --gid $USER_GID $USERNAME && \
+  adduser --disabled-password --gecos "" --shell /usr/bin/zsh --uid $USER_UID --gid $USER_GID $USERNAME && \
+  usermod -aG sudo $USERNAME && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/$USERNAME && \
+  chmod 0440 /etc/sudoers.d/$USERNAME && usermod -aG docker $USERNAME
 
 USER $USERNAME
 WORKDIR /home/$USERNAME
+# Set default entrypoint
+ENTRYPOINT [ "/usr/local/bin/start.sh" ]
 
 # Install oh my zsh
 RUN yes | sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" && \
   git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting && \
   git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions && \
-  sed -e 's|ZSH_THEME=".*"|ZSH_THEME="strug"|g' -i ~/.zshrc && \
-  sed -e 's|plugins=(.*)|plugins=(git docker zsh-syntax-highlighting zsh-autosuggestions)|g' -i ~/.zshrc
-
-# Install Project global packages
-RUN sudo npm install -g ts-node typescript
-
-# Create Start Script
-ARG DOCKERD_ARGS=""
-RUN (\
-echo "#""!/bin/bash";\
-echo "set -e";\
-echo "if ! [[ -z \"\$@\" ]]; then";\
-echo "  (sudo dockerd $DOCKERD_ARGS) &";\
-echo "  sh -c \"\$@\"";\
-echo "  while (ps -ef | grep -v grep | grep -q dockerd); do sleep 8s; done";\
-echo "  echo Dockerd stopped";\
-echo "  exit 2";\
-echo "else";\
-echo "  sudo dockerd";\
-echo "fi";\
-)|sudo tee /usr/local/bin/start.sh && sudo chmod +x /usr/local/bin/start.sh
-
-# Start Docker Engine
-ENTRYPOINT [ "/usr/local/bin/start.sh" ]
+  sed -e 's|ZSH_THEME=".*"|ZSH_THEME="strug"|g' -i ~/.zshrc && sed -e 's|plugins=(.*)|plugins=(git docker zsh-syntax-highlighting zsh-autosuggestions)|g' -i ~/.zshrc
