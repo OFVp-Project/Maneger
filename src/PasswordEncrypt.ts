@@ -31,3 +31,8 @@ export function DecryptPassword(passwordObject: {iv: string; Encrypt: string;}):
   const decipher = crypto.createDecipheriv("aes-192-cbc", key, Buffer.from(iv, "hex"));
   return decipher.update(Encrypt, "hex", "utf8") + decipher.final("utf8");
 };
+
+export async function comparePassword(Password: string, passwordObject: {iv: string; Encrypt: string;}): Promise<boolean> {
+  const password = DecryptPassword(passwordObject);
+  return password === Password;
+}
