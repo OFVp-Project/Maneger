@@ -124,8 +124,7 @@ app.route("/auth").get(({res}) => authSchema.authSchema.collection.find().toArra
   const failures: Array<{Parameter: string, Error: string}> = [];
   const {email, password} = req.body;
   if (typeof email !== "string") failures.push({Parameter: "email", Error: "Invalid email"});
-  if (!/^\S+@\S+\.\S+$/.test(email)) failures.push({Parameter: "email", Error: "Invalid email"});
-  if (!!(await authSchema.authSchema.findOne({email: email}))) return res.status(400).json({error: "Email already exists"});
+  if (!/[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/.test(email)) failures.push({Parameter: "email", Error: "Invalid email"});
   if (typeof password !== "string") failures.push({Parameter: "password", Error: "Invalid password"});
   if (password.length <= 7) failures.push({Parameter: "password", Error: "Invalid password length, must be at least 8 characters"});
   if (failures.length > 0) return res.status(400).json(failures);
@@ -134,7 +133,7 @@ app.route("/auth").get(({res}) => authSchema.authSchema.collection.find().toArra
 }).put<{}, {}, {Email: string, Password: string, newPassword?: string}, authSchema.privileges>(async (req, res) => {
   const { Email, Password, newPassword } = req.body;
   if (typeof Email !== "string") return res.status(400).json({ error: "Invalid email" });
-  if (!/^\S+@\S+\.\S+$/.test(Email)) return res.status(400).json({ error: "Invalid email" });
+  if (!/[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/.test(Email)) return res.status(400).json({ error: "Invalid email" });
   if (typeof Password !== "string") return res.status(400).json({ error: "Invalid password" });
   if (Password.length <= 7) return res.status(400).json({ error: "Invalid password length, must be at least 8 characters" });
   if (!!newPassword) {
@@ -152,7 +151,7 @@ app.route("/auth").get(({res}) => authSchema.authSchema.collection.find().toArra
   if (req.query.isToken === "true") return authSchema.deleteToken({Token: req.body.token}).then(data => res.json(data)).catch(err => res.status(400).json({ error: String(err) }));
   const {email, password} = req.body;
   if (typeof email !== "string") return res.status(400).json({error: "Invalid email"});
-  if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({error: "Invalid email"});
+  if (!/[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/.test(email)) return res.status(400).json({error: "Invalid email"});
   if (typeof password !== "string") return res.status(400).json({error: "Invalid password"});
   if (password.length <= 7) return res.status(400).json({error: "Invalid password length, must be at least 8 characters"});
   return authSchema.deleteToken({Email: email, Password: password}).then(data => res.json(data)).catch(err => res.status(400).json({ error: String(err) }));
@@ -171,7 +170,7 @@ app.route("/login").get(authEndpoints, async (req, res) => res.status(200).json(
     }).then(res.json).catch(err => res.status(400).json({error: String(err)}));
   }
   if (typeof Email !== "string") return res.status(400).json({error: "Invalid email"});
-  if (!/^\S+@\S+\.\S+$/.test(Email)) return res.status(400).json({error: "Invalid email"});
+  if (!/[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/.test(Email)) return res.status(400).json({error: "Invalid email"});
   if (typeof Password !== "string") return res.status(400).json({error: "Invalid password"});
   if (Password.length <= 7) return res.status(400).json({error: "Invalid password length, must be at least 8 characters"});
   return authSchema.getAuth({Email: Email, Password: Password}).then(userAuth => {
