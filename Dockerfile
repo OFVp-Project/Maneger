@@ -1,4 +1,4 @@
-FROM debian:latest AS server
+FROM debian:latest
 LABEL name="OFVp Server" \
   org.opencontainers.image.title="OFVp Deamon Maneger" \
   org.opencontainers.image.description="Main docker image to maneger anothers docker images." \
