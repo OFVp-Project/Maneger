@@ -6,44 +6,62 @@ volumes:
 networks:
   ofvp_network:
 services:
-  ofvp_mongodb:
-    container_name: ofvp_mongodb
-    restart: on-failure
+  db:
     image: mongo
     volumes:
       - MongoOFVp:/data/db
     networks:
       - "ofvp_network"
-    environment:
-      - PUID=1000
-      - PGID=1000
-    entrypoint:
-    - "mongod"
-    - "--bind_ip_all"
-    - "--quiet"
-    - "--logpath"
-    - "/dev/null"
+    command:
+      # - "--bind_ip_all"
+      - "--quiet"
+      - "--logpath"
+      - "/dev/null"
 
   ofvp_daemon_maneger:
-    container_name: ofvp_daemon_maneger
-    restart: on-failure
     image: ghcr.io/ofvp-project/deamonmaneger:local
     build:
       context: .
       dockerfile: Dockerfile
     depends_on:
-      - ofvp_mongodb
+      - db
     networks:
       - "ofvp_network"
     environment:
       NODE_ENV: "development"
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+      MongoDB_URL: "mongodb://db:27017"
       PASSWORD_ENCRYPT: "dev"
       COOKIE_SECRET: "dev"
     ports:
       - 3000:3000/tcp
     volumes:
       - data_api:/data
+
+  ofvp_openssh:
+    image: ghcr.io/ofvp-project/openssh:latest
+    networks:
+      - "ofvp_network"
+    environment:
+      NODE_ENV: "development"
+      MongoDB_URL: "mongodb://db:27017"
+      PASSWORD_ENCRYPT: "dev"
+      COOKIE_SECRET: "dev"
+    ports:
+      - 2222:22/tcp
+    volumes:
+      - data_ssh:/data
+
+  ofvp_webproxy:
+    image: ghcr.io/ofvp-project/webproxy:latest
+    networks:
+      - "ofvp_network"
+    depends_on:
+      - ofvp_openssh
+    ports:
+      - 80:80/tcp
+    command:
+      - "--ssh"
+      - "ofvp_openssh:22"
 
   # ofvp_wireguard:
   #   container_name: ofvp_wireguard
@@ -53,7 +71,7 @@ services:
   #     - "ofvp_network"
   #   environment:
   #     NODE_ENV: "development"
-  #     MongoDB_URL: "mongodb://ofvp_mongodb:27017"
+  #     MongoDB_URL: "mongodb://db:27017"
   #     PASSWORD_ENCRYPT: "dev"
   #   privileged: true
   #   sysctls:
@@ -67,33 +85,3 @@ services:
   #     - 51820:51820/udp
   #   depends_on:
   #     - ofvp_daemon_maneger
-
-  ofvp_openssh:
-    container_name: ofvp_openssh
-    restart: on-failure
-    image: ghcr.io/ofvp-project/openssh:latest
-    networks:
-      - "ofvp_network"
-    environment:
-      NODE_ENV: "development"
-      MongoDB_URL: "mongodb://ofvp_mongodb:27017"
-      PASSWORD_ENCRYPT: "dev"
-      COOKIE_SECRET: "dev"
-    ports:
-      - 2222:22/tcp
-    volumes:
-      - data_ssh:/data
-
-  ofvp_webproxy:
-    image: ghcr.io/ofvp-project/webproxy:latest
-    container_name: ofvp_webproxy
-    restart: on-failure
-    networks:
-      - "ofvp_network"
-    depends_on:
-      - ofvp_openssh
-    ports:
-      - 80:80/tcp
-    command:
-      - "--ssh"
-      - "ofvp_openssh:22"

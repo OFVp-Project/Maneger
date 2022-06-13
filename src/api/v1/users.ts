@@ -31,7 +31,7 @@ app.route("/").post(async (req, res) => {
   const ErrorInputs = ValidateRegister({username, password, date_to_expire, ssh_connections, wireguard_peers});
   if (ErrorInputs.length > 0) return res.status(400).json(ErrorInputs);
   if (username.trim().toLowerCase().trim() === "root") return res.status(400).json({message: "not allowed to root username"});
-  if (!!(await usersIDs.UserSchema.findOne({Username: String(username)}))) return res.status(400).json({message: "username already exists"});
+  if (!!(await usersIDs.UserSchema.findOne({Username: String(username)}).lean())) return res.status(400).json({message: "username already exists"});
   // Register ID
   const UserId = await usersIDs.RegisterUser(username, new Date(date_to_expire));
   // Register SSH and Wireguard

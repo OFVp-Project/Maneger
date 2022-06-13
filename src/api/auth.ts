@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import * as mongo_auth from "../model/auth";
+import * as mongo_auth from "../schemas/auth";
 import { DecryptPassword } from "../PasswordEncrypt";
 
 export async function authEndpoints(req: Request, res: Response, next: NextFunction) {

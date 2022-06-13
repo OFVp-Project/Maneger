@@ -4,6 +4,7 @@ import * as IpMatching from "ip-matching";
 import { Connection } from "../mongo";
 import fs from "fs";
 import path from "path";
+import { onStorage } from "../pathControl";
 
 type WireguardKeys = Array<{
   keys: {
@@ -107,12 +108,11 @@ const randomKeys = () => new Promise<{privateKey: string, publicKey: string}>((r
   });
 }));
 
-const storagePath = (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing")? process.cwd():"/data";
 export async function wireguardInterfaceConfig(): Promise<{Preshared: string; Private: string; Public: string;}> {
-  if (fs.existsSync(path.resolve(storagePath, "wireguardInterface.json"))) return JSON.parse(fs.readFileSync(path.resolve(storagePath, "wireguardInterface.json"), "utf8"));
+  if (fs.existsSync(path.resolve(onStorage, "wireguardInterface.json"))) return JSON.parse(fs.readFileSync(path.resolve(onStorage, "wireguardInterface.json"), "utf8"));
   const keysPairOne = await randomKeys(), keysPairTwo = await randomKeys();
   const keys = {Preshared: keysPairTwo.privateKey, Private: keysPairOne.privateKey, Public: keysPairOne.publicKey};
-  fs.writeFileSync(path.resolve(storagePath, "wireguardInterface.json"), JSON.stringify(keys, null, 2));
+  fs.writeFileSync(path.resolve(onStorage, "wireguardInterface.json"), JSON.stringify(keys, null, 2));
   return keys;
 }
 

@@ -1,42 +1,37 @@
 import mongoose from "mongoose";
-let { MongoDB_URL } = process.env;
-if (!MongoDB_URL) MongoDB_URL = "mongodb://localhost:27017";
-if (!/:\/\/.*\//.test(MongoDB_URL)) MongoDB_URL = MongoDB_URL+"/OFVpServer";
+if (process.env.MongoDB_URL) process.env.MONGO_URL = process.env.MongoDB_URL;
+let { MONGO_URL } = process.env;
+if (!MONGO_URL) {
+  console.log("[MongoDB] No MongoDB URL provided");
+  process.exit(1);
+}
+const urlParse = new URL(MONGO_URL);
+if (!urlParse.pathname) MONGO_URL += "/OFVpServer"; else if (urlParse.pathname === "/") MONGO_URL += "OFVpServer";
+if (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing") console.log("[MongoDB] Connecting to %s", MONGO_URL);
 
 // Create connection
-export const Connection = mongoose.createConnection(MongoDB_URL, {
-  maxPoolSize: 400,
-  minPoolSize: 5,
+export const Connection = mongoose.createConnection(MONGO_URL, {
   autoIndex: true,
   compressors: "zlib",
   serializeFunctions: true,
   zlibCompressionLevel: 9
 });
 Connection.set("maxTimeMS", 30 * 1000);
-
-/**
- * @type {Status: "Connecting"|"Connected"|"Error"; Error: null|Error;}
- */
-const ConnectionStatusObject = {Status: "Connecting", Error: null};
-Connection.on("connected", () => {
-  ConnectionStatusObject.Status = "Connected";
-  ConnectionStatusObject.Error = null;
-});
-Connection.on("error", err => {
-  ConnectionStatusObject.Status = "Error";
-  ConnectionStatusObject.Error = err;
-  console.error("Error to connect in MongoDB", err);
-});
+let statusLocal: string|Error = undefined
+Connection.on("error", err => statusLocal = err);
+Connection.on("connected", () => statusLocal = "connected");
 
 /**
  * Get Users Database Connection Status
- * @returns {Promise<ConnectionStatusObject>}
+ * @returns {Promise<void>}
  */
-export async function ConnectionStatus() {
-  while (true) {
-    if (ConnectionStatusObject.Status === "Connected") return;
-    if (ConnectionStatusObject.Status === "Error") throw ConnectionStatusObject.Error;
-    if (ConnectionStatusObject.Status !== "Connecting") throw new Error("Users MongoDB Error in Connection");
-    await new Promise(res => setTimeout(res, 500));
+export function ConnectionStatus() {
+  if (statusLocal === "connected") return Promise.resolve();
+  else if (statusLocal === undefined) {
+    return new Promise<void>((resolve, reject) => {
+      Connection.on("error", reject);
+      Connection.on("connected", () => resolve());
+    });
   }
+  return Promise.reject(statusLocal);
 }

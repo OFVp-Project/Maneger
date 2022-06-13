@@ -1,5 +1,5 @@
 import express from "express";
-import * as mongo_v3_auth from "../../model/auth";
+import * as mongo_v3_auth from "../../schemas/auth";
 export const app = express.Router();
 
 app.post("/register", async (req, res) => {

@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { EncryptPassword, DecryptPassword } from "../PasswordEncrypt";
 import mongoose from "mongoose";
 import { Connection } from "../mongo";

@@ -24,8 +24,8 @@
       "NODE_ENV": "development",
       "COOKIE_SECRET": "dev",
       "PASSWORD_ENCRYPT": "aaaaa",
-      "DAEMON_PASSWORD": "",
-      "DAEMON_USER": ""
+      "DAEMON_PASSWORD": "dev",
+      "DAEMON_USER": "dev"
     },
     "exec": "ts-node src/index.ts"
   },
