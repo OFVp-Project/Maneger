@@ -18,6 +18,7 @@ else {
 }
 
 io.on("connection", (socket) => {
+  console.log("[Daemon] New Connection, ID: %s", socket.id);
   // Wireguard
   // Send Wireguard Config on Request
   socket.on("wireguardServerConfig", () => {

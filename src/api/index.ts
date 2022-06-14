@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import * as http from "node:http";
 import * as util from "node:util";
+import * as socket_io from "socket.io";
 import express from "express";
 import RateLimit from "express-rate-limit";
 import BodyParse from "body-parser";
@@ -18,8 +19,19 @@ import { isDebug, onStorage, emailValidate } from "../pathControl";
 // Express
 export const app = express();
 export const Server = http.createServer(app);
-export const session = Session;
+export const io = new socket_io.Server(Server, {transports: ["websocket", "polling"], cors: {origin: "*"}});
+// if (!DAEMON_USERNAME && !DAEMON_PASSWORD) console.info("[Daemon] the Daemon will not authenticate");
+// else {
+//   io.use((socket, next) => {
+//     const connUser = socket.handshake.query.username || socket.handshake.auth.username || socket.handshake.headers.username;
+//     const connPass = socket.handshake.query.password || socket.handshake.auth.password || socket.handshake.headers.password;
+//     if (connUser !== DAEMON_USERNAME) return next(new Error("Authentication Error: Username is not valid"));
+//     else if (connPass !== DAEMON_PASSWORD) return next(new Error("Authentication Error: Password is not valid"));
+//     return next();
+//   });
+// }
 
+export const session = Session;
 declare module "express-session" {
   interface Session {
     Session,

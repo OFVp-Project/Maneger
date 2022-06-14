@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { isDebug } from "./pathControl";
 if (process.env.MongoDB_URL) process.env.MONGO_URL = process.env.MongoDB_URL;
 let { MONGO_URL } = process.env;
 if (!MONGO_URL) {
@@ -7,7 +8,7 @@ if (!MONGO_URL) {
 }
 const urlParse = new URL(MONGO_URL);
 if (!urlParse.pathname) MONGO_URL += "/OFVpServer"; else if (urlParse.pathname === "/") MONGO_URL += "OFVpServer";
-if (process.env.NODE_ENV === "development"||process.env.NODE_ENV === "testing") console.log("[MongoDB] Connecting to %s", MONGO_URL);
+if (isDebug) console.log("[MongoDB] Connecting to %s", MONGO_URL);
 
 // Create connection
 export const Connection = mongoose.createConnection(MONGO_URL, {
