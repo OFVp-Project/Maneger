@@ -1,87 +1,66 @@
 version: "3.9"
-volumes:
-  data_api:
-  data_ssh:
-  MongoOFVp:
 networks:
-  ofvp_network:
+  defaultOfvpNetwork:
+volumes:
+  mongoStorage:
+  sshStorage:
+
 services:
-  db:
+  mongodb:
     image: mongo
-    volumes:
-      - MongoOFVp:/data/db
-    networks:
-      - "ofvp_network"
-    command:
-      # - "--bind_ip_all"
-      - "--quiet"
-      - "--logpath"
-      - "/dev/null"
-
-  ofvp_daemon_maneger:
-    image: ghcr.io/ofvp-project/deamonmaneger:local
-    build:
-      context: .
-      dockerfile: Dockerfile
-    depends_on:
-      - db
-    networks:
-      - "ofvp_network"
+    restart: always
+    command: "--bind_ip_all --port 27017 --noauth --quiet --logpath /dev/null"
+    networks: [defaultOfvpNetwork]
+    volumes: [mongoStorage:/data/db]
+  ofvpmaneger:
+    build: ./
+    ports: [3000:3000/tcp]
+    networks: [defaultOfvpNetwork]
+    depends_on: [mongodb]
     environment:
       NODE_ENV: "development"
-      MongoDB_URL: "mongodb://db:27017"
+      MongoDB_URL: "mongodb://mongodb:27017/ofvp"
       PASSWORD_ENCRYPT: "dev"
       COOKIE_SECRET: "dev"
-    ports:
-      - 3000:3000/tcp
-    volumes:
-      - data_api:/data
+      DAEMON_USERNAME: ""
+      DAEMON_PASSWORD: ""
 
-  ofvp_openssh:
-    image: ghcr.io/ofvp-project/openssh:latest
-    networks:
-      - "ofvp_network"
+  wireguard:
+    image: ghcr.io/ofvp-project/wireguard:next
+    restart: always
+    depends_on: [ofvpmaneger]
+    networks: [defaultOfvpNetwork]
+    volumes: [/lib/modules/:/lib/modules/:ro]
+    ports: [51820:51820/udp]
+    privileged: true
+    sysctls:
+      net.ipv4.conf.all.src_valid_mark: 1
+      net.ipv6.conf.all.disable_ipv6: 0
+      net.ipv6.conf.all.forwarding: 1
+      net.ipv4.ip_forward: 1
     environment:
-      NODE_ENV: "development"
-      MongoDB_URL: "mongodb://db:27017"
-      PASSWORD_ENCRYPT: "dev"
-      COOKIE_SECRET: "dev"
-    ports:
-      - 2222:22/tcp
-    volumes:
-      - data_ssh:/data
+      DAEMON_HOST: "http://ofvpmaneger:5000"
+      DAEMON_USERNAME: ""
+      DAEMON_PASSWORD: ""
 
-  ofvp_webproxy:
+  ssh:
+    image: ghcr.io/ofvp-project/ssh-server:next
+    restart: always
+    depends_on: [ofvpmaneger]
+    networks: [defaultOfvpNetwork]
+    ports: [2222:22/tcp]
+    volumes: [sshStorage:/data]
+    environment:
+      PASSWORD_ENCRYPT: "dev"
+      NODE_ENV: "development"
+      DAEMON_HOST: "http://ofvpmaneger:5000"
+      DAEMON_USERNAME: ""
+      DAEMON_PASSWORD: ""
+
+  webproxy:
     image: ghcr.io/ofvp-project/webproxy:latest
-    networks:
-      - "ofvp_network"
-    depends_on:
-      - ofvp_openssh
-    ports:
-      - 80:80/tcp
-    command:
-      - "--ssh"
-      - "ofvp_openssh:22"
-
-  # ofvp_wireguard:
-  #   container_name: ofvp_wireguard
-  #   restart: on-failure
-  #   image: ghcr.io/ofvp-project/wireguard:latest
-  #   networks:
-  #     - "ofvp_network"
-  #   environment:
-  #     NODE_ENV: "development"
-  #     MongoDB_URL: "mongodb://db:27017"
-  #     PASSWORD_ENCRYPT: "dev"
-  #   privileged: true
-  #   sysctls:
-  #     net.ipv4.conf.all.src_valid_mark: 1
-  #     net.ipv6.conf.all.disable_ipv6: 0
-  #     net.ipv6.conf.all.forwarding: 1
-  #     net.ipv4.ip_forward: 1
-  #   volumes:
-  #     - /lib/modules/:/lib/modules/:ro
-  #   ports:
-  #     - 51820:51820/udp
-  #   depends_on:
-  #     - ofvp_daemon_maneger
+    restart: always
+    depends_on: [ssh]
+    networks: [defaultOfvpNetwork]
+    ports: [8080:80/tcp]
+    command: "-l 1 --ssh ssh:22"
