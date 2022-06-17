@@ -15,7 +15,8 @@ updates:
       separator: _
     schedule:
       interval: "daily"
-      timezone: "UTC-3"
+      timezone: "America/Sao_Paulo"
+      time: "14:30"
     labels:
       - dependabot_update
       - dependecies
