@@ -2,14 +2,23 @@ version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
-    assignees:
-      - Sirherobrine23
+    pull-request-branch-name:
+      separator: _
     schedule:
       interval: "daily"
+    assignees:
+      - Sirherobrine23
 
   - package-ecosystem: "npm"
     directory: "/"
-    assignees:
-      - Sirherobrine23
+    pull-request-branch-name:
+      separator: _
     schedule:
       interval: "daily"
+      timezone: "UTC-3"
+    labels:
+      - dependabot_update
+      - dependecies
+      - npm
+    assignees:
+      - Sirherobrine23
