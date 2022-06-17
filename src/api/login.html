@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+</head>
+<body>
+  <script>
+    function changeToken() {
+      const __1 = document.getElementById('token').style.display;
+      const __2 = document.getElementById('email').style.display;
+      document.getElementById('email').style.display = __1;
+      document.getElementById('token').style.display = __2;
+    }
+  </script>
+  <button onclick="changeToken()">Token</button>
+  <form action="/login" method="post">
+    <!-- Token?: string, Email?: string, Password?: string -->
+    <div id="token" style="display: none;">
+      <span>Token: </span><input type="text" name="Token">
+    </div>
+    <div id="email">
+      <span>Email: </span><input type="text" name="Email">
+      <span>Password: </span><input type="password" name="Password">
+    </div>
+    <button type="submit">Login</button>
+  </form>
+</body>
+</html>

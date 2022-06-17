@@ -1,5 +1,8 @@
 {
-  "include": ["src/"],
+  "include": [
+    "src/**/*",
+    "src/**/*.html"
+  ],
   "exclude": ["node_modules/"],
   "compilerOptions": {
     "outDir": "./dist",
