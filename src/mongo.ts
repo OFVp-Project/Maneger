@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
 import { isDebug } from "./pathControl";
-if (process.env.MongoDB_URL) process.env.MONGO_URL = process.env.MongoDB_URL;
 let { MONGO_URL } = process.env;
-if (!MONGO_URL) {
-  console.log("[MongoDB] No MongoDB URL provided");
-  process.exit(1);
-}
 const urlParse = new URL(MONGO_URL);
-if (!urlParse.pathname) MONGO_URL += "/OFVpServer"; else if (urlParse.pathname === "/") MONGO_URL += "OFVpServer";
+if (urlParse.pathname === "/"||!urlParse.pathname) {
+  MONGO_URL = ""; MONGO_URL += urlParse.protocol + "//"; MONGO_URL += urlParse.host;
+  if (urlParse.username) MONGO_URL += urlParse.username; if (urlParse.password) MONGO_URL += ":" + urlParse.password;
+  if (!!urlParse.username || !!urlParse.password) MONGO_URL += "@";
+  MONGO_URL += "/ofvp";
+}
 if (isDebug) console.log("[MongoDB] Connecting to %s", MONGO_URL);
 
 // Create connection

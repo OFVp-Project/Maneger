@@ -1,32 +1,37 @@
-# What is Ofvp Project
+# What is OFVp Project
 
 OFVp Project was born out of a need to be a free alternative to VPN solutions that are self-managing and easy to maintain and update.
 
 > **Note**
+>
 > currently this project is under construction and possible daily maintenance having several APIs being completely rewritten and updated without support with previous versions of the project, any migration package can be written in the future but for now you will have to manually export users to the new version.
 
 ## Avaibles Server's and Proxys
 
 * [Wireguard Server](https://github.com/OFVp-Project/Wireguard) create Wireguard tunnel.
 * [SSH Server](https://github.com/OFVp-Project/SSH-Server) SSH. Server to only port forwarding (tunneling ports).
-  * [wsProxy](https://github.com/OFVp-Project/webproxy) Proxy SSH with websocket.
+  *  [wsProxy](https://github.com/OFVp-Project/webproxy) Proxy SSH with websocket.
 
 ## Requirements
 
 All servers run in a container available for Docker, podmam* and Kubernetes.
 
-> **Note**
+1. Docker, podman or Kubernets.
+2. MongoDB:
+   * Could be the docker image for mongoDB.
+   * Might be on Mongo Atlas ([Mongo Website](https://www.mongodb.com/)).
+   * cloud providers.
+
+> **Warning**
+>
 > if you are going to use Wireguard you will have to install Wireguard on your system, and run the Wireguard container in privileged mode because you will have to mount the system modules inside the container, if not, any type of error will occur within Wireguard and will not work, and the system must also have iptables installed for Wireguard route forwarding.
 >
-> * Required Wireguard installed.
-> * Required iptables installed.
+> - **Required Wireguard installed**.
+> - **Required iptables installed**.
 >
 > Quick install:
 >
-> debian/ubuntu install: `sudo apt update && sudo apt install -y dkms wireguard iptables`.
-
-1. Docker, podman or Kubernets.
-2. MongoDB server or Mongo Atlas server.
+> Debian/Ubuntu: `sudo bash -c 'apt update && apt install -y wireguard iptables'`.
 
 ## Config examples
 
@@ -34,8 +39,12 @@ All servers run in a container available for Docker, podmam* and Kubernetes.
 
 ```yaml
 version: "3.9"
+
+# Docker network for the maneger comunicater to servers.
 networks:
   defaultOfvpNetwork:
+
+# Docker volumes
 volumes:
   mongoStorage:
   sshStorage:
@@ -50,8 +59,8 @@ services:
     volumes: [mongoStorage:/data/db]
 
   # Manger and main Controler
-  ofvpmaneger:
-    image: ghcr.io/ofvp-project/deamonmaneger:latest
+  maneger:
+    image: ghcr.io/ofvp-project/maneger:latest
     ports: [3000:3000/tcp]
     networks: [defaultOfvpNetwork]
     depends_on: [mongodb]

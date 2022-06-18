@@ -1,10 +1,5 @@
 import crypto from "crypto";
-const SecretEncrypt = (process.env.PASSWORD_ENCRYPT||"").trim();
-if (!SecretEncrypt) {
-  console.error("env PASSWORD_ENCRYPT it blank.");
-  process.exit(1);
-}
-
+const SecretEncrypt = (process.env.PASSWORD_SECERET||"").trim();
 /**
  * @param {string} password
  */

@@ -190,3 +190,17 @@ export async function getAuth(user: {Email?: string, Password?: string, Token?: 
   if (!(await PasswordEncrypt.comparePassword(user.Password, Object(userDoc.Password)))) throw new Error("Password is wrong");
   return userDoc;
 }
+
+export async function findOne(option: {Email?: string, Password?: string, Token?: string}): Promise<AuthToken> {
+  if (option.Token) {
+    if (typeof option.Token !== "string") throw new Error("Token is not a string");
+    const tokenDoc = authSchema.findOne({Token: option.Token}).lean();
+    if (!tokenDoc) throw new Error("Token no exists");
+    return tokenDoc;
+  }
+  if (typeof option.Email !== "string") throw new Error("Email is not a string");
+  if (typeof option.Password !== "string") throw new Error("Password is not a string");
+  const userDoc = await authSchema.findOne({Email: option.Email}).lean();
+  if (!userDoc) throw new Error("Email no exists");
+  return PasswordEncrypt.comparePassword(option.Password, Object(userDoc.Password)).then(isValid => isValid ? userDoc : Promise.reject("Password is wrong"));
+}

@@ -6,8 +6,15 @@ import * as expressUtil from "./expressUtil";
 import * as sshManeger from "../schemas/ssh";
 import * as Wireguard from "../schemas/Wireguard";
 import * as usersIDs from "../schemas/UserID";
+import RateLimit from "express-rate-limit";
 export const user = express.Router();
 user.use(expressUtil.catchExpressError);
+if (process.env.NODE_ENV === "production") user.use(RateLimit({
+  skipSuccessfulRequests: true,
+  windowMs: 1000 * 60 * 2,
+  message: "Too many requests from this IP, please try again after an minute.",
+  max: 1000,
+}));
 const qrCodeCreate = util.promisify(qrCode.toBuffer) as (arg1: string) => Promise<Buffer>;
 type userReqgisterBody = {Username: string; Password: string; expireDate: string; maxSshConnections: number|string; wireguardPeer: number|string;};
 function authTokenVerify(req: Request, res: Response, next: NextFunction) {
@@ -91,59 +98,6 @@ user.delete<{}, {}, {Username: string}, {}>("/", authTokenVerify, async (req, re
   return res.json(ResDel);
 });
 
-/*
-Wireguard Config Example:
-```
-[Interface]
-PrivateKey = string
-Address = string, string
-DNS = string, string
-
-[Peer]
-PublicKey = string
-PresharedKey = string
-Endpoint = string:number
-AllowedIPs = string, string
-```
-
-JSON Wireguard config Example:
-```json
-{
-    Interface: {
-      PrivateKey: string,
-      Address: [string],
-      DNS: [string]
-    },
-    Peer: {
-      PublicKey: string,
-      PresharedKey: string,
-      Endpoint: string,
-      Port: number,
-      AllowedIPs: ["0.0.0.0/0", "::0/0"] // Default allow all ips
-    }
-  }
-```
-
-openwrt 18 Example:
-```
-config interface 'string'
-  option proto 'wireguard'
-  option private_key 'string'
-  list addresses 'string'
-config wireguard_string
-  option description 'string_Peer'
-  option public_key 'string'
-  option preshared_key 'string'
-  list allowed_ips 'string'
-  option endpoint_host 'string'
-  option endpoint_port 'string'
-  option persistent_keepalive '25'
-  option route_allowed_ips '1'
-  ```
-  */
-const {WIREGUARD_HOST, WIREGUARD_PORT} = process.env;
-if (!WIREGUARD_HOST) console.info("WIREGUARD_HOST is not defined, on request config will not be sent");
-if (!WIREGUARD_PORT) console.info("WIREGUARD_PORT is not defined, on request config will not be sent");
 type wireguardConfigTypes = "wireguard"|"json"|"yaml"|"qrcode"|"openwrt18";
 type wireguardJsonConfig = {
   Interface: {
@@ -159,6 +113,9 @@ type wireguardJsonConfig = {
     AllowedIPs: string[]
   }
 };
+const {WIREGUARD_HOST, WIREGUARD_PORT} = process.env;
+if (!WIREGUARD_HOST) console.info("WIREGUARD_HOST is not defined, on request config will not be sent");
+if (!WIREGUARD_PORT) console.info("WIREGUARD_PORT is not defined, on request config will not be sent");
 user.get<{}, {}, any, {User: string, keyIndex?: string, fileType?: wireguardConfigTypes}>("/wireguardConfig", async (req, res) => {
   if (!WIREGUARD_HOST) return res.status(400).json({error: "WIREGUARD_HOST is not defined"});
   if (!WIREGUARD_PORT) return res.status(400).json({error: "WIREGUARD_PORT is not defined"});
@@ -179,6 +136,7 @@ user.get<{}, {}, any, {User: string, keyIndex?: string, fileType?: wireguardConf
   if (!wireguardConfig) return res.status(404).json({error: "User not found"});
   const wireguardPeerIndex = wireguardConfig.Keys[keyIndex];
   if (!wireguardPeerIndex) return res.status(404).json({error: "key index not found"});
+
   const config: wireguardJsonConfig = {
     Interface: {
       PrivateKey: wireguardPeerIndex.keys.Private,

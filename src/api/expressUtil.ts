@@ -25,7 +25,13 @@ export async function sessionVerifyPrivilege(express: {req: Request, res: Respon
     console.log(isDebug ? "Debug mode is on" : "No users in database");
     return express.next();
   }
-  if (Privilages.some((privilege) => express.req.session.userAuth.Privilages[privilege.req] === privilege.value)) return express.next();
+  if (express.req.session.userAuth) {
+    if (express.req.session.userAuth.Privilages.admin === "write") return express.next();
+    if (Privilages.some((privilege) => {
+      if (express.req.session.userAuth.Privilages[privilege.req] === "write" && privilege.value === "read") return true;
+      return express.req.session.userAuth.Privilages[privilege.req]  === privilege.value
+    })) return express.next();
+  }
   express.res.status(403).json({
     error: "Unauthorized",
     message: "You do not have permission to access this resource!"

@@ -19,7 +19,8 @@
     "target": "ES6",
     "typeRoots": [
       "node_modules/@types",
-      "./src/api/index.ts"
+      "./src/api/index.ts",
+      "./src/index.ts"
     ]
   }
 }

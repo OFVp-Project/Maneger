@@ -19,7 +19,7 @@ ENV \
   # Cookie Secret Key
   COOKIE_SECRET="" \
   # Passowrd to encrypt SSH Passowrd
-  PASSWORD_ENCRYPT="" \
+  PASSWORD_SECRET="" \
   # Daemon Config
   DAEMON_USERNAME="" \
   DAEMON_PASSWORD="" \
@@ -27,8 +27,8 @@ ENV \
   WIREGUARD_HOST="" \
   WIREGUARD_PORT="" \
   # OpenSSH Hostname and Port, if you want to use on OpenSSH APIs, on default is requests host.
-  OPENSSH_HOST="" \
-  OPENSSH_PORT=""
+  SSH_HOST="" \
+  SSH_PORT=""
 
 # Export API port
 EXPOSE 3000/tcp
