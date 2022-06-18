@@ -2,8 +2,9 @@ import * as socket_io from "socket.io";
 import * as http from "node:http";
 import * as wireguard from "./schemas/Wireguard";
 import * as ssh from "./schemas/ssh";
-
+if (!process.env.SHOWDAEMONLOG) process.env.SHOWDAEMONLOG = "0";
 const { DAEMON_USERNAME, DAEMON_PASSWORD } = process.env;
+
 export const Server = http.createServer();
 export const io = new socket_io.Server(Server, {transports: ["websocket", "polling"], cors: {origin: "*"}});
 if (!DAEMON_USERNAME && !DAEMON_PASSWORD) console.info("[Daemon] the Daemon will not authenticate");

@@ -1,4 +1,5 @@
 import cliColor from "cli-color";
+if (!process.env.NOCOLOR) process.env.NOCOLOR = "0";
 if (process.env.NOCOLOR !== "1") {
   const originalLog = console.log;
   const originalError = console.error;

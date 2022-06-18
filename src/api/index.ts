@@ -14,7 +14,7 @@ import { isDebug, onStorage, emailValidate } from "../pathControl";
 import * as authSchema from "../schemas/auth";
 import { RemoveKeysFromJson, authEndpoints, catchExpressError } from "./expressUtil";
 if (!process.env.COOKIE_SECRET) {
-  console.log("COOKIE_SECRET is not defined");
+  console.error("COOKIE_SECRET is not set");
   process.exit(1);
 }
 

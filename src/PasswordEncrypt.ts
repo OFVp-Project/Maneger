@@ -1,9 +1,19 @@
 import crypto from "crypto";
-const SecretEncrypt = (process.env.PASSWORD_SECERET||"").trim();
+const SecretEncrypt = process.env.PASSWORD_SECERET;
+if (!SecretEncrypt) {
+  console.error("PASSWORD_SECERET is not set");
+  process.exit(1);
+}
+
+export type passwordEncrypted = {
+  Encrypt: string,
+  iv: string
+};
+
 /**
- * @param {string} password
+ * @param password - plain text password to encrypt
  */
-export function EncryptPassword(Password: string): {Encrypt: string; iv: string;} {
+export function EncryptPassword(Password: string): passwordEncrypted {
   const iv = crypto.randomBytes(16);
   const key = crypto.scryptSync(SecretEncrypt, "salt", 24);
   const cipher = crypto.createCipheriv("aes-192-cbc", key, iv);
@@ -15,10 +25,10 @@ export function EncryptPassword(Password: string): {Encrypt: string; iv: string;
 
 /**
  * Return String with password decrypt.
- * @param {string|{iv: string; Encrypt: string;}} password
+ * @param password
  * @returns {string}
  */
-export function DecryptPassword(passwordObject: {iv: string; Encrypt: string;}): string {
+export function DecryptPassword(passwordObject: passwordEncrypted): string {
   const {iv, Encrypt} = passwordObject;
   if (!iv) throw new Error("iv blank");
   if (!Encrypt) throw new Error("Encrypt blank");
@@ -27,7 +37,7 @@ export function DecryptPassword(passwordObject: {iv: string; Encrypt: string;}):
   return decipher.update(Encrypt, "hex", "utf8") + decipher.final("utf8");
 };
 
-export async function comparePassword(Password: string, passwordObject: {iv: string; Encrypt: string;}): Promise<boolean> {
+export async function comparePassword(Password: string, passwordObject: passwordEncrypted): Promise<boolean> {
   const password = DecryptPassword(passwordObject);
   return password === Password;
 }

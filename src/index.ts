@@ -1,13 +1,6 @@
 #!/usr/bin/env node
 // Check environments and import modules
-if (!process.env.NODE_ENV) process.env.NODE_ENV = "development";
-if (!process.env.NOCOLOR) {if (process.env.NODE_ENV === "development") process.env.NOCOLOR = "0";else process.env.NOCOLOR = "1";}
 import "./consoleLogColor";
-if (!!process.env.MongoDB_URL) {console.warn("MONGO_URL is deprecated, use MONGO_URL instead"); process.env.MONGO_URL = process.env.MongoDB_URL; delete process.env.MongoDB_URL;}
-if (!process.env.SHOWDAEMONLOG) process.env.SHOWDAEMONLOG = "0";
-if (!process.env.PASSWORD_SECERET) {console.error("PASSWORD_SECERET is not set"); process.exit(1);}
-if (!process.env.MONGO_URL) {console.error("MONGO_URL is not set"); process.exit(1);}
-if (!process.env.COOKIE_SECRET) {console.error("COOKIE_SECRET is not set"); process.exit(1);}
 import * as API from "./api/index";
 import * as MongoConnect from "./mongo";
 import * as daemon from "./daemon";
@@ -19,7 +12,7 @@ declare global {
       /** Don't show color on Log Terminal */
       NOCOLOR: "0"|"1",
       /** Set API to production or development */
-      NODE_ENV: "development" | "production",
+      NODE_ENV?: "development" | "test" | "production",
       /** Secret to encrypt passwords */
       PASSWORD_SECERET: string,
       /**

@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import { isDebug } from "./pathControl";
+if (!!process.env.MongoDB_URL) {console.warn("MONGO_URL is deprecated, use MONGO_URL instead"); process.env.MONGO_URL = process.env.MongoDB_URL; delete process.env.MongoDB_URL;}
+if (!process.env.MONGO_URL) {console.error("MONGO_URL is not set"); process.exit(1);}
 let { MONGO_URL } = process.env;
 const urlParse = new URL(MONGO_URL);
 if (urlParse.pathname === "/"||!urlParse.pathname) {

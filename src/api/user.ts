@@ -20,7 +20,8 @@ type userReqgisterBody = {Username: string; Password: string; expireDate: string
 function authTokenVerify(req: Request, res: Response, next: NextFunction) {
   return expressUtil.sessionVerifyPrivilege({req: req, res: res, next: next}, [{req: "admin", value: "write"}, {req: "users", value: "write"}])
 };
-user.post<{}, {}, userReqgisterBody, {}>("/", authTokenVerify, async (req, res) => {
+user.post<{}, {}, userReqgisterBody, {}>("/", authTokenVerify, (req, res) => {
+  const inFuture = new Date(Date.now() + (1000 * 60 * 60 * 24 * 2));
   const { Username, Password, expireDate, maxSshConnections, wireguardPeer } = req.body;
   const ErrorInputs:Array<{parameter: string, message: string}> = [];
   // Username
@@ -32,59 +33,70 @@ user.post<{}, {}, userReqgisterBody, {}>("/", authTokenVerify, async (req, res) 
   if (!Password) ErrorInputs.push({parameter: "Password", message: "Password is required"});
   else if (typeof Password !== "string") ErrorInputs.push({parameter: "Password", message: "Password must be a string"});
 
-  // Date
-  const futureDate = new Date(Date.now() + (1000 * 60 * 60 * 24 * 2));
-  if (!expireDate) ErrorInputs.push({parameter: "expireDate", message: "Date to expire is required"});
-  else {
-    const UserDate = new Date(expireDate);
-    if (UserDate.toString() === "Invalid Date") ErrorInputs.push({parameter: "expireDate", message: "Date to expire is invalid, please use YYYY-MM-DD or javascript Date object"});
-    else if (UserDate.getTime() <= futureDate.getTime()) ErrorInputs.push({parameter: "expireDate", message: "Date to expire is in the future, date input: "+UserDate.toString()+", min require date: "+futureDate.toString()});
-  }
+  // expireDate
+  const dateParsed = new Date(expireDate);
+  if (inFuture.getTime() >= dateParsed.getTime()) ErrorInputs.push({parameter: "expireDate", message: "Expiration date cannot be less than 2 days, example:" + inFuture.getDate() + "/" + (inFuture.getMonth() + 1) + "/" + inFuture.getFullYear()});
+
   // maxSshConnections
-  if (parseInt(String(maxSshConnections)) !== 0) {if (isNaN(parseInt(String(maxSshConnections)))) ErrorInputs.push({parameter: "maxSshConnections", message: "Ssh connections is required"});}
+  const sshConnections = parseInt(String(maxSshConnections));
+  if (sshConnections !== 0) {
+    if (isNaN(sshConnections)) ErrorInputs.push({parameter: "maxSshConnections", message: "Ssh connections is required"});
+  }
+
   // wireguardPeer
-  if (parseInt(String(wireguardPeer)) !== 0) {
-    if (isNaN(parseInt(String(wireguardPeer)))) ErrorInputs.push({parameter: "wireguardPeer", message: "Count to get keys and ips to wireguard"});
-    else if (parseInt(String(wireguardPeer)) > 500) ErrorInputs.push({parameter: "wireguardPeer", message: "Count to get keys and ips to wireguard must be less than 500"});
+  const wireguardKeysToGen = parseInt(String(wireguardPeer));
+  if (wireguardKeysToGen !== 0) {
+    if (isNaN(wireguardKeysToGen)) ErrorInputs.push({parameter: "wireguardPeer", message: "Count to get keys and ips to wireguard"});
+    else if (wireguardKeysToGen > 128) ErrorInputs.push({parameter: "wireguardPeer", message: "Count to get keys and ips to wireguard must be less than 128"});
   }
 
   // if errors return errors
   if (ErrorInputs.length > 0) return res.status(400).json(ErrorInputs);
-  if (!!(await usersIDs.UserSchema.findOne({Username: String(Username)}).lean())) return res.status(400).json({message: "username already exists"});
-  // Register ID
-  const UserId = await usersIDs.RegisterUser(Username, new Date(expireDate));
-  // Register SSH and Wireguard
-  const [ssh, wireguard] = await Promise.all([
-    sshManeger.CreateUser(UserId.UserId, Username, new Date(expireDate), Password, parseInt(String(maxSshConnections))),
-    Wireguard.AddKeys(UserId.UserId, parseInt(String(wireguardPeer)))
-  ]);
-
-  // Return data
-  return res.json({
-    UserId: UserId.UserId,
-    Username: Username,
-    Expire: new Date(expireDate),
-    Wireguard: wireguard,
-    SSH: {
-      maxConnections: ssh.maxConnections,
-    }
-  });
+  return usersIDs.UserSchema.findOne({Username: String(Username)}).lean().then(existUser => {
+    if (!!existUser) return res.status(400).json({message: "username already exists"});
+    return usersIDs.RegisterUser(Username, dateParsed).then(UserId => {
+      return sshManeger.CreateUser(UserId.UserId, Username, dateParsed, Password, sshConnections).then(ssh => {
+        return Wireguard.AddKeys(UserId.UserId, wireguardKeysToGen).then(wireguard => {
+          return res.json({
+            UserId: UserId.UserId,
+            Username: Username,
+            Expire: dateParsed,
+            SSH: {maxConnections: ssh.maxConnections},
+            Wireguard: wireguard
+          });
+        });
+      })
+    });
+  }).catch(err => res.status(500).json({message: String(err).replace("Error: ", "")}));
 });
 
-user.get("/", async ({res}) => {
-  const [ids, ssh, wireguard] = await Promise.all([usersIDs.GetUsers(), sshManeger.getUsers(), Wireguard.getUsers()]);
-  const usersMap = [];
-  for (const id of ids) {
-    const UserIDOldStyle = {
-      ...id,
-      ssh: ssh.find(ssh => ssh.UserID === id.UserId),
-      wireguard: wireguard.find(wireguard => wireguard.UserId === id.UserId)
+user.get("/", ({res}) => {
+  return usersIDs.GetUsers().then(user => Promise.all(user.map(User => sshManeger.sshSchema.findOne({UserID: User.UserId}).lean().then(ssh => Wireguard.WireguardSchema.findOne({UserID: User.UserId}).lean().then(wireguard => {
+    return {
+      UserId: User.UserId,
+      Username: User.Username,
+      expireDate: User.expireDate,
+      SSH: {maxConnections: ssh.maxConnections},
+      Wireguard: wireguard.Keys
     };
-    if (!!UserIDOldStyle.ssh) delete UserIDOldStyle.ssh.UserID;
-    if (!!UserIDOldStyle.wireguard) delete UserIDOldStyle.wireguard.UserId;
-    usersMap.push(UserIDOldStyle);
-  }
-  return res.json(usersMap);
+  }))))).then(res.json).catch(err => res.status(400).json({message: String(err).replace("Error: ", "")}));
+});
+
+user.get("/:Username", (req, res) => {
+  return usersIDs.findOne(req.params.Username).then(user => {
+    if (!user) return res.status(400).json({message: "user not found"});
+    return sshManeger.sshSchema.findOne({UserID: user.UserId}).lean().then(ssh => {
+      return Wireguard.WireguardSchema.findOne({UserID: user.UserId}).lean().then(wireguard => {
+        return res.json({
+          UserId: user.UserId,
+          Username: user.Username,
+          Expire: user.expireDate,
+          SSH: {maxConnections: ssh.maxConnections},
+          Wireguard: wireguard.Keys
+        });
+      });
+    });
+  }).catch(err => res.status(400).json({message: String(err).replace("Error: ", "")}));
 });
 
 user.delete<{}, {}, {Username: string}, {}>("/", authTokenVerify, async (req, res) => {

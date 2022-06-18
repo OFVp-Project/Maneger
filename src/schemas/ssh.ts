@@ -5,15 +5,12 @@ import * as Encrypt from "../PasswordEncrypt";
 type sshType = {
   UserID: string,
   Username: string,
-  Expire: Date,
+  expireDate: Date,
   maxConnections: number,
-  Password: {
-    Encrypt: string,
-    iv: string
-  }
+  Password: Encrypt.passwordEncrypted
 };
 
-export const sshSchema = Connection.model<sshType>("ssh", new mongoose.Schema<sshType>({
+export const sshSchema = Connection.model<sshType>("ssh", new mongoose.Schema<sshType, mongoose.Model<sshType, sshType, sshType, sshType>>({
   UserID: {
     type: String,
     required: true,
@@ -29,7 +26,7 @@ export const sshSchema = Connection.model<sshType>("ssh", new mongoose.Schema<ss
     required: true,
     default: 5
   },
-  Expire: {
+  expireDate: {
     type: Date,
     required: true
   },
@@ -50,7 +47,7 @@ export async function CreateUser(UserID: string, Username: string, DateExpire: D
     UserID: UserID,
     Username: Username,
     maxConnections: maxConnections,
-    Expire: DateExpire,
+    expireDate: DateExpire,
     Password: Encrypt.EncryptPassword(Password)
   });
   return UserData;

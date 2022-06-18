@@ -10,15 +10,17 @@ export type privileges = {
   users: privilegesValues,
   addTokens: privilegesValues
 };
+
 export type AuthToken = {
   CreatedAt: Date,
   UpdatedAt: Date,
-  TokenAlias?: string,
   Token: string,
+  TokenAlias?: string,
   Email?: string,
-  Password?: string | {iv: string, Encrypt: string},
+  Password?: PasswordEncrypt.passwordEncrypted,
   Privilages: privileges
 };
+
 export const authSchema = Connection.model<AuthToken>("Auth", new mongoose.Schema<AuthToken>({
   // Date Updates and Creation
   CreatedAt: {
@@ -33,7 +35,7 @@ export const authSchema = Connection.model<AuthToken>("Auth", new mongoose.Schem
   Token: {
     type: String,
     unique: true,
-    default: () => "ofvp_"+crypto.randomBytes(16).toString("hex")
+    default: () => "ofvpAuth_"+crypto.randomBytes(16).toString("hex")
   },
   // Token Alias
   TokenAlias: {

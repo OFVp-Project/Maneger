@@ -35,7 +35,7 @@ jobs:
     name: Publish latest
     environment:
       name: PublishImage
-      url: "https://github.com/OFVp-Project/DeamonManeger/pkgs/container/deamonmaneger"
+      url: "https://github.com/OFVp-Project/Maneger/pkgs/container/maneger"
     steps:
       - uses: actions/checkout@v2.4.0
         with:
@@ -62,7 +62,7 @@ jobs:
           platforms: ${{ env.default_docker_platfroms }}
           cache-from: type=gha,scope=${{ github.ref }}_ofvp_daemon_${{ github.repository }}
           cache-to: type=gha,mode=max,scope=${{ github.ref }}_ofvp_daemon_${{ github.repository }}
-          tags: ghcr.io/ofvp-project/deamonmaneger:next
+          tags: ghcr.io/ofvp-project/maneger:next
 
   releaseImage:
     runs-on: ubuntu-latest
@@ -70,7 +70,7 @@ jobs:
     if: ${{ github.event.inputs.publish_release }}
     environment:
       name: PublishRelease
-      url: "https://github.com/OFVp-Project/DeamonManeger/pkgs/container/deamonmaneger"
+      url: "https://github.com/OFVp-Project/Maneger/pkgs/container/maneger"
     steps:
       - uses: actions/checkout@v2.4.0
         with:
@@ -98,8 +98,8 @@ jobs:
           cache-from: type=gha,scope=${{ github.ref }}_ofvp_daemon_${{ github.repository }}
           cache-to: type=gha,mode=max,scope=${{ github.ref }}_ofvp_daemon_${{ github.repository }}
           tags: |
-            ghcr.io/ofvp-project/deamonmaneger:latest
-            ghcr.io/ofvp-project/deamonmaneger:v${{ github.event.inputs.version }}
+            ghcr.io/ofvp-project/maneger:latest
+            ghcr.io/ofvp-project/maneger:v${{ github.event.inputs.version }}
 
       - name: Create release
         uses: softprops/action-gh-release@v1

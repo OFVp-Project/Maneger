@@ -6,22 +6,11 @@ import fs from "fs";
 import path from "path";
 import { onStorage } from "../pathControl";
 
-type WireguardKeys = Array<{
-  keys: {
-    Preshared: string,
-    Private: string,
-    Public: string},
-  ip: {
-    v4: {ip: string, mask: string},
-    v6: {ip: string, mask: string}
-  }
-}>
 
-type wireguardType = {
-  UserId: string,
-  Keys: WireguardKeys
-};
 
+type key = {Preshared: string, Private: string, Public: string};
+type ip = {v4: {ip: string, mask: string}, v6: {ip: string, mask: string}};
+type wireguardType = {UserId: string, Keys: {keys: key, ip: ip}[]};
 export const WireguardSchema = Connection.model<wireguardType>("Wireguard", new mongoose.Schema<wireguardType>({
   UserId: {
     type: String,
@@ -154,7 +143,7 @@ export async function AddKeys(UserId: string, KeysToRegister: number) {
       }
     }
   }
-  const Keys: WireguardKeys = await Promise.all(Array(KeysToRegister).fill(null).map(() => createKey()));
+  const Keys: Array<{keys: key, ip: ip}> = await Promise.all(Array(KeysToRegister).fill(null).map(() => createKey()));
   await WireguardSchema.create({
     UserId,
     Keys
@@ -166,10 +155,14 @@ export async function getUsers(): Promise<Array<wireguardType>> {
   return await WireguardSchema.find({}).lean();
 }
 
-export async function findOne(UserID: string): Promise<WireguardKeys> {
-  return (await WireguardSchema.findOne({UserId: UserID}).lean()).Keys;
+export async function findOne(UserID: string): Promise<Array<{keys: key, ip: ip}>> {
+  if (typeof UserID !== "string") throw new Error("UserID must be a string");
+  const user = await WireguardSchema.findOne({UserId: UserID}).lean();
+  if (!user) throw new Error("User not found");
+  return user.Keys;
 }
 
 export async function DeleteKeys(UserID: string) {
+  if (typeof UserID !== "string") throw new Error("UserID must be a string");
   return await WireguardSchema.findOneAndDelete({UserId: UserID}).lean();
 }
