@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Imports
+import "./consoleLogColor";
 import * as API from "./api/index";
 import * as MongoConnect from "./mongo";
 import * as daemon from "./daemon";

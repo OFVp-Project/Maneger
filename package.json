@@ -46,6 +46,7 @@
   "homepage": "https://github.com/OFVp-Project/DeamonManeger#readme",
   "dependencies": {
     "body-parser": "^1.20.0",
+    "cli-color": "^2.0.2",
     "cors": "^2.8.5",
     "cron": "^2.0.0",
     "express": "^4.18.1",
@@ -63,6 +64,7 @@
     "yaml": "^2.1.1"
   },
   "devDependencies": {
+    "@types/cli-color": "^2.0.2",
     "@types/express": "^4.17.13",
     "@types/express-session": "^1.17.4",
     "@types/node": "^18.0.0",

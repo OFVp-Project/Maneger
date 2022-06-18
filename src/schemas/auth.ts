@@ -3,10 +3,12 @@ import mongoose from "mongoose";
 import { Connection } from "../mongo";
 import * as PasswordEncrypt from "../PasswordEncrypt";
 
+export type privilegesKeys = "admin"|"users"|"addTokens";
+export type privilegesValues = "read"|"write";
 export type privileges = {
-  admin: "read"|"write",
-  users: "read"|"write",
-  addTokens: "read"|"write"
+  admin: privilegesValues,
+  users: privilegesValues,
+  addTokens: privilegesValues
 };
 export type AuthToken = {
   CreatedAt: Date,
