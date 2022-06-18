@@ -2,20 +2,18 @@
 
 OFVp Project was born out of a need to be a free alternative to VPN solutions that are self-managing and easy to maintain and update.
 
-> > **Note**
+> **Note**
 > currently this project is under construction and possible daily maintenance having several APIs being completely rewritten and updated without support with previous versions of the project, any migration package can be written in the future but for now you will have to manually export users to the new version.
 
-## Avaibles Servers
+## Avaibles Server's and Proxys
 
-* [SSH Server](https://github.com/OFVp-Project/SSH-Server).
-* [Wireguard Server](https://github.com/OFVp-Project/Wireguard).
+* [Wireguard Server](https://github.com/OFVp-Project/Wireguard) create Wireguard tunnel.
+* [SSH Server](https://github.com/OFVp-Project/SSH-Server) SSH. Server to only port forwarding (tunneling ports).
+  * [wsProxy](https://github.com/OFVp-Project/webproxy) Proxy SSH with websocket.
 
 ## Requirements
 
-all servers are written in JavaScript/Typescript without being in Docker/Open container initiative image format, **removing any possible installation** on the host system.
-
-1. Docker, podman or Kubernets.
-2. MongoDB server or Mongo Atlas server.
+All servers run in a container available for Docker, podmam* and Kubernetes.
 
 > **Note**
 > if you are going to use Wireguard you will have to install Wireguard on your system, and run the Wireguard container in privileged mode because you will have to mount the system modules inside the container, if not, any type of error will occur within Wireguard and will not work, and the system must also have iptables installed for Wireguard route forwarding.
@@ -25,13 +23,16 @@ all servers are written in JavaScript/Typescript without being in Docker/Open co
 >
 > Quick install:
 >
-> debian/ubuntu install: ``[sudo] apt update && [sudo] apt install -y dkms wireguard iptables`.
+> debian/ubuntu install: `sudo apt update && sudo apt install -y dkms wireguard iptables`.
+
+1. Docker, podman or Kubernets.
+2. MongoDB server or Mongo Atlas server.
 
 ## Config examples
 
 ### Docker Compose and Docker swan
 
-```ymm
+```yaml
 version: "3.9"
 networks:
   defaultOfvpNetwork:
@@ -48,6 +49,7 @@ services:
     networks: [defaultOfvpNetwork]
     volumes: [mongoStorage:/data/db]
 
+  # Manger and main Controler
   ofvpmaneger:
     image: ghcr.io/ofvp-project/deamonmaneger:latest
     ports: [3000:3000/tcp]
@@ -60,6 +62,7 @@ services:
       DAEMON_USERNAME: "${DAEMONUSERNAME}"
       DAEMON_PASSWORD: "${DAEMONPASSWORD}"
 
+  # SSH Server
   ssh:
     image: ghcr.io/ofvp-project/ssh-server:latest
     restart: on-failure
@@ -71,8 +74,9 @@ services:
       DAEMON_HOST: "http://ofvpmaneger:5000"
       PASSWORD_ENCRYPT: "${PASSWORDENCRYPT}"
       DAEMON_USERNAME: "${DAEMONUSERNAME}"
-      DAEMON_PASSWORD: "${DAEMONPASSWORD}
+      DAEMON_PASSWORD: "${DAEMONPASSWORD}"
 
+  # Websocket proxy SSH
   webproxy:
     image: ghcr.io/ofvp-project/webproxy:latest
     restart: on-failure
@@ -81,6 +85,7 @@ services:
     ports: [8080:80/tcp]
     command: "-l 1 --ssh ssh:22"
 
+  # Wireguard Server
   wireguard:
     image: ghcr.io/ofvp-project/wireguard:latest
     restart: on-failure
