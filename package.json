@@ -69,6 +69,6 @@
     "@types/qrcode": "^1.4.2",
     "@types/session-file-store": "^1.2.2",
     "axios": "^0.27.2",
-    "nodemon": "^2.0.16"
+    "nodemon": "^2.0.18"
   }
 }
