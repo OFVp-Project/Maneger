@@ -10,6 +10,7 @@ import sessionStore from "session-file-store";
 import * as yaml from "yaml";
 import { auth } from "./auth";
 import { user } from "./user";
+import { schemas as schemasRoute } from "./schemas";
 import { isDebug, onStorage, emailValidate } from "../pathControl";
 import * as authSchema from "../schemas/auth";
 import { RemoveKeysFromJson, authEndpoints, catchExpressError } from "./expressUtil";
@@ -47,7 +48,7 @@ app.use((req, res, next) => {
   }
   return next();
 });
-app.use(ExpressSession({
+if (!isDebug) app.use(ExpressSession({
   secret: process.env.COOKIE_SECRET,
   name: "ofvp_session",
   resave: false,
@@ -108,6 +109,7 @@ app.route("/login").post<{}, {}, {Token?: string, Email?: string, Password?: str
 
 // Token Routes
 app.use("/auth", RateLimit({windowMs: 60*1000, max: 10}), authEndpoints, auth);
+app.use("/schemas", authEndpoints, schemasRoute);
 
 // Users Routes
 app.use("/user", authEndpoints, async (_req, res, next) => {

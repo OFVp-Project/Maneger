@@ -1,16 +1,15 @@
-import * as crypto from "crypto";
+import * as crypto from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import mongoose from "mongoose";
 import * as IpMatching from "ip-matching";
+import * as nodeCidr from "../lib/node-cidr";
 import { Connection } from "../mongo";
-import fs from "fs";
-import path from "path";
 import { onStorage } from "../pathControl";
 
-
-
 type key = {Preshared: string, Private: string, Public: string};
-type ip = {v4: {ip: string, mask: string}, v6: {ip: string, mask: string}};
-type wireguardType = {UserId: string, Keys: {keys: key, ip: ip}[]};
+type ip = {v4: {ip: string, mask?: string}, v6?: {ip: string, mask: string}};
+type wireguardType = {UserId: string, Keys: {keys?: key, ip: ip}[]};
 export const WireguardSchema = Connection.model<wireguardType>("Wireguard", new mongoose.Schema<wireguardType>({
   UserId: {
     type: String,
@@ -105,31 +104,41 @@ export async function wireguardInterfaceConfig(): Promise<{Preshared: string; Pr
   return keys;
 }
 
-async function RandomRange(Min: number, Max: number) {
-  const value = Math.floor(Math.random() * (Max - Min + 1)) + Min;
-  if (value > Max) return RandomRange(Min, Max);
-  else if (value < Min) return RandomRange(Min, Max);
-  return value % 256;
-}
-async function createIp(filterFunc?: (value: string) => true|false|Promise<true|false>) {
-  if (!filterFunc) filterFunc = () => false;
-  const ips = await Promise.all((Array(4).fill(null)).map(() => RandomRange(2, 255)));
-  if (ips[0] <= 192 && ips[0] >= 168) {
-    ips[0] = 192;
-    ips[1] = 168;
-  } else if (ips[0] <= 172 && ips[0] >= 16) ips[0] = 172; else ips[0] = 10;
-  const ip = ips.join(".");
-  if (!!(await filterFunc(ip)) === true) return createIp(filterFunc);
-  return ip;
+async function shuffleIps(): Promise<string[]> {
+  const array = nodeCidr.cidr.ips("192.168.1.1/16").concat(nodeCidr.cidr.ips("172.0.0.1/24")).concat(nodeCidr.cidr.ips("10.0.0.1/24"));
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(0, array.length-1);
+    const temp = array[i];
+    array[i] = array[j];
+    array[j] = temp;
+  }
+  return array
 }
 
+async function createIp(ignore: string[] = []) {
+  const ips = (await shuffleIps()).filter(x => !ignore.includes(x));
+  if (ips.length < ignore.length) throw new Error("Max ip");
+  let ip = ips[crypto.randomInt(0, ips.length-1)];
+  const findInDb = await WireguardSchema.findOne({
+    Keys: {
+      ip: {
+        v4: {ip: ip}
+      }
+    }
+  }).lean();
+  if (!!findInDb) return createIp([...ignore, ip]);
+  return ip;
+}
 export async function AddKeys(UserId: string, KeysToRegister: number) {
+  if (KeysToRegister <= 0) return [];
   if (!!(await WireguardSchema.collection.findOne({UserId: UserId}))) throw new Error("User already exists");
-  const createKey = async () => {
+  const Keys = [];
+  while(KeysToRegister > 0){
+    KeysToRegister--
     const keysPairOne = await randomKeys(), keysPairTwo = await randomKeys();
-    const ipV4 = await createIp(async (ip: string) => !!(await WireguardSchema.collection.findOne({Keys: {ip: {v4: {ip: ip}}}})));
+    const ipV4 = await createIp();
     const ipV6 = convert_ipv4_to_ipv6(ipV4);
-    return {
+    const data = {
       keys: {Preshared: keysPairTwo.privateKey, Private: keysPairOne.privateKey, Public: keysPairOne.publicKey},
       ip: {
         v4: {
@@ -141,9 +150,9 @@ export async function AddKeys(UserId: string, KeysToRegister: number) {
           mask: IpMatching.getMatch(ipV6).convertToMasks()[0].ip.bits.toString()
         }
       }
-    }
+    };
+    Keys.push(data);
   }
-  const Keys: Array<{keys: key, ip: ip}> = await Promise.all(Array(KeysToRegister).fill(null).map(() => createKey()));
   await WireguardSchema.create({
     UserId,
     Keys
@@ -155,7 +164,7 @@ export async function getUsers(): Promise<Array<wireguardType>> {
   return await WireguardSchema.find({}).lean();
 }
 
-export async function findOne(UserID: string): Promise<Array<{keys: key, ip: ip}>> {
+export async function findOne(UserID: string): Promise<Array<{keys?: key, ip: ip}>> {
   if (typeof UserID !== "string") throw new Error("UserID must be a string");
   const user = await WireguardSchema.findOne({UserId: UserID}).lean();
   if (!user) throw new Error("User not found");
