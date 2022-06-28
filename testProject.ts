@@ -19,7 +19,7 @@ async function readDirAndFilter(dir: string, test: Array<RegExp> = [/.*/]) {
 }
 
 // Add default envs
-process.env.PASSWORD_ENCRYPT = "password";
+process.env.PASSWORD_SECERET = "password";
 process.env.NODE_ENV = "development";
 const RandomUUIDs = Array(50).fill(0).map(() => crypto.randomUUID());
 
