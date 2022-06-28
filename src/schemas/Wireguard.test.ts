@@ -1,4 +1,5 @@
 import * as Wireguard from "./Wireguard";
+import * as crypto from "node:crypto";
 
 // Short Script run test fastly
 export async function main() {
@@ -41,32 +42,32 @@ export async function long(Keys: Array<string>) {
   // Register wireguard keys
   console.log("[Wireguard]: Register Wireguard Keys");
   const startAddKey = Date.now();
-  const AddKey = await Promise.all(Keys.map((key) => Wireguard.AddKeys(key, (Math.floor(Math.random() * 1000)%255)+2).catch(() => Wireguard.AddKeys(key, (Math.floor(Math.random() * 1000)%255)+2)).catch(err => {
-    console.log("[Wireguard]: Error: %o", err);
-    return String(err.stack||err);
-  })));
+  const AddKey = await Promise.all(Keys.map((key) => {
+    const keysToGen = crypto.randomInt(0, 128);
+    Wireguard.AddKeys(key, keysToGen).catch(() => Wireguard.AddKeys(key, keysToGen)).catch(err => {
+      return String(err.stack||err);
+    });
+  }));
   console.log("[Wireguard]: Execution time: %o", Date.now() - startAddKey);
+
+    // Get all keys
+    console.log("[Wireguard]: Get all keys");
+    const startAllKeys = Date.now();
+    const allKeys = await Wireguard.getUsers();
+    console.log("[Wireguard]: Execution time: %o", Date.now() - startAllKeys);
 
   // Get Wireguard Keys
   console.log("[Wireguard]: Find Wireguard Keys");
   const startFind = Date.now();
   const find = await Promise.all(Keys.map((key) => Wireguard.findOne(key).catch(err => {
-    console.log("[Wireguard]: Error: %o", err);
     return String(err.stack||err);
   })));
   console.log("[Wireguard]: Execution time: %o", Date.now() - startFind);
-
-  // Get all keys
-  console.log("[Wireguard]: Get all keys");
-  const startAllKeys = Date.now();
-  const allKeys = await Wireguard.getUsers();
-  console.log("[Wireguard]: Execution time: %o", Date.now() - startAllKeys);
 
   // Delete key
   console.log("[Wireguard]: Delete key");
   const startDeleteKey = Date.now();
   const DeleteKey = await Promise.all(Keys.map((key) => Wireguard.DeleteKeys(key).catch(err => {
-    console.log("[Wireguard]: Error: %o", err);
     return String(err.stack||err);
   })));
   console.log("[Wireguard]: Execution time: %o", Date.now() - startDeleteKey);
