@@ -20,24 +20,6 @@ export function RemoveKeysFromJson(objRec, keyToDel: Array<string>) {
   }));
 }
 
-export async function sessionVerifyPrivilege(express: {req: Request, res: Response, next: NextFunction}, Privilages: Array<{req: authSchema.privilegesKeys, value: authSchema.privilegesValues}>) {
-  if (isDebug||(await authSchema.authSchema.collection.countDocuments()) === 0) {
-    console.log(isDebug ? "Debug mode is on" : "No users in database");
-    return express.next();
-  }
-  if (express.req.session.userAuth) {
-    if (express.req.session.userAuth.Privilages.admin === "write") return express.next();
-    if (Privilages.some((privilege) => {
-      if (express.req.session.userAuth.Privilages[privilege.req] === "write" && privilege.value === "read") return true;
-      return express.req.session.userAuth.Privilages[privilege.req]  === privilege.value
-    })) return express.next();
-  }
-  express.res.status(403).json({
-    error: "Unauthorized",
-    message: "You do not have permission to access this resource!"
-  });
-}
-
 export async function authEndpoints(req: Request, res: Response, next: NextFunction) {
   if (isDebug||(await authSchema.authSchema.collection.countDocuments()) === 0) {
     console.log(isDebug ? "Debug mode is on" : "No users in database");

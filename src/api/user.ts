@@ -1,14 +1,16 @@
 import * as util from "node:util";
 import express, {Request, Response, NextFunction} from "express";
+import RateLimit from "express-rate-limit";
 import * as yaml from "yaml";
 import * as qrCode from "qrcode";
-import * as expressUtil from "./expressUtil";
 import * as sshManeger from "../schemas/ssh";
 import * as Wireguard from "../schemas/Wireguard";
 import * as usersIDs from "../schemas/UserID";
-import RateLimit from "express-rate-limit";
+import * as expressUtil from "./expressUtil";
+import * as auth from "../schemas/auth";
 import { isDebug } from "../pathControl";
 export const user = express.Router();
+
 user.use(expressUtil.catchExpressError);
 if (process.env.NODE_ENV === "production") user.use(RateLimit({
   skipSuccessfulRequests: true,
@@ -18,9 +20,7 @@ if (process.env.NODE_ENV === "production") user.use(RateLimit({
 }));
 const qrCodeCreate = util.promisify(qrCode.toBuffer) as (arg1: string) => Promise<Buffer>;
 type userReqgisterBody = {Username: string; Password: string; expireDate: string; maxSshConnections: number|string; wireguardPeer: number|string;};
-function authTokenVerify(req: Request, res: Response, next: NextFunction) {
-  return expressUtil.sessionVerifyPrivilege({req: req, res: res, next: next}, [{req: "admin", value: "write"}, {req: "users", value: "write"}])
-};
+const authTokenVerify = (req: Request, res: Response, next: NextFunction) => auth.expressSessionVerify([{keyName: "admin", content: "write"}, {keyName: "users", content: "write"}], {req: req, res: res, next: next});
 user.post<{}, {}, userReqgisterBody, {}>("/", authTokenVerify, (req, res) => {
   const inFuture = new Date(Date.now() + (1000 * 60 * 60 * 24 * 2));
   const { Username, Password, expireDate, maxSshConnections, wireguardPeer } = req.body;

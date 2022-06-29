@@ -1,7 +1,9 @@
 import crypto from "node:crypto";
 import mongoose from "mongoose";
+import {Request, Response, NextFunction} from "express";
 import { Connection } from "../mongo";
 import * as PasswordEncrypt from "../PasswordEncrypt";
+import { isDebug } from "../pathControl";
 
 export type privilegesKeys = "admin"|"users"|"addTokens";
 export type privilegesValues = "read"|"write";
@@ -44,13 +46,12 @@ export const authSchema = Connection.model<AuthToken>("Auth", new mongoose.Schem
   // E-Mail
   Email: {
     type: String,
-    required: true,
     unique: true
   },
   // Encrypted Password
   Password: {
-    iv: {type: String, required: true},
-    Encrypt: {type: String, required: true}
+    iv: {type: String},
+    Encrypt: {type: String}
   },
   Privilages: {
     admin: {
@@ -69,10 +70,6 @@ export const authSchema = Connection.model<AuthToken>("Auth", new mongoose.Schem
       enum: ["read", "write"]
     }
   }
-}, {
-  versionKey: false,
-  autoIndex: true,
-  bufferCommands: false,
 }));
 
 /**
@@ -105,19 +102,18 @@ export async function createUserAuth(user: {Email: string, Password: string}): P
 export async function createToken(alias: string): Promise<AuthToken> {
   if ((await authSchema.collection.countDocuments()) === 0) throw new Error("Register a user first");
   if (typeof alias !== "string") throw new Error("Alias is not a string");
-  if (await authSchema.collection.findOne({Token: alias})) throw new Error("Token no exists");
-  const userDoc = await authSchema.findOne({TokenAlias: alias}).lean();
-  if (!!(userDoc)) throw new Error("Alias is already in use");
-  if (!userDoc.Email) throw new Error("Is not user with email");
+  const rootToken = await authSchema.findOne({Token: alias}).lean();
+  if (!rootToken) throw new Error("Token no exists");
+  if (!rootToken.Email) throw new Error("Is not user with email");
   const token = await authSchema.create({
     TokenAlias: alias,
+    Email: crypto.randomBytes(16).toString("hex") + "_" + rootToken.Email,
     Privilages: {
       admin: "read",
       users: "read",
       addTokens: "read"
     },
   });
-  await authSchema.findOneAndUpdate({token: alias}, {$push: {TokenAlias: token.Token}}).lean();
   return token;
 }
 
@@ -129,21 +125,22 @@ export async function createToken(alias: string): Promise<AuthToken> {
  * @param option - Options to find token to delete
  * @returns
  */
-export async function deleteToken(option: {Token?: string, Email?: string, Password?: string}): Promise<Array<AuthToken>> {
+export async function deleteToken(option: {Token?: string, Email?: string, Password?: string}): Promise<AuthToken[]> {
+  if (!(option?.Token||option?.Email)) throw new Error("Invalid options");
+  let userToken: AuthToken;
   if (option?.Token) {
     if (typeof option.Token !== "string") throw new Error("Token is not a string");
-    if (!(await authSchema.collection.findOne({Token: option.Token}))) throw new Error("Token no exists");
-    return [await authSchema.findOneAndDelete({Token: option.Token})];
+    userToken = await authSchema.findOne({Token: option.Token}).lean();
+    if (!userToken) throw new Error("Email no exists");
   } else if (option?.Email) {
     if (typeof option.Email !== "string") throw new Error("Email is not a string");
     if (typeof option.Password !== "string") throw new Error("Password is not a string");
-    const userDoc = await authSchema.findOne({Email: option.Email}).lean();
-    if (!userDoc) throw new Error("Email no exists");
-    if (!(await PasswordEncrypt.comparePassword(option.Password, Object(userDoc.Password)))) throw new Error("Password is wrong");
-    const deletedTokens = await Promise.all((await authSchema.find({TokenAlias: userDoc.Token}).lean()).map(async (token) => authSchema.findOneAndDelete({Token: token.Token}).lean()));
-    return [await authSchema.findOneAndDelete({Email: option.Email}).lean(), ...deletedTokens];
+    userToken = await authSchema.findOne({Email: option.Email}).lean();
+    if (!userToken) throw new Error("Email no exists");
+    if (!(await PasswordEncrypt.comparePassword(option.Password, Object(userToken.Password)))) throw new Error("Password is wrong");
   }
-  throw new Error("No option");
+  const deletedTokens = await authSchema.find({TokenAlias: userToken.Token}).lean().then(tokens => tokens.map((token) => authSchema.findOneAndDelete({Token: token.Token}).lean())).then(res => Promise.all(res));
+  return [await authSchema.findOneAndDelete({Token: userToken.Token}).lean(), ...deletedTokens];
 }
 
 /**
@@ -205,4 +202,28 @@ export async function findOne(option: {Email?: string, Password?: string, Token?
   const userDoc = await authSchema.findOne({Email: option.Email}).lean();
   if (!userDoc) throw new Error("Email no exists");
   return PasswordEncrypt.comparePassword(option.Password, Object(userDoc.Password)).then(isValid => isValid ? userDoc : Promise.reject("Password is wrong"));
+}
+
+export type expressVerifyReq = {
+  keyName: privilegesKeys,
+  content: privilegesValues
+};
+export async function expressSessionVerify(req: expressVerifyReq[], express: {req: Request, res: Response, next: NextFunction}): Promise<any> {
+  if (isDebug||(await authSchema.collection.countDocuments()) === 0) {
+    console.log(isDebug ? "Debug mode is on" : "No users in database");
+    return express.next();
+  }
+  const userAuth = express.req.session["userAuth"];
+  if (!!userAuth) {
+    const authDb = await authSchema.findOne({Token: userAuth?.Token}).lean();
+    if (!!authDb) {
+      const isOk = req.some(x => (authDb.Privilages[x.keyName] === "write" && x.content === "read") || authDb.Privilages[x.keyName] === x.content);
+      if (isOk) return express.next();
+    }
+  }
+
+  return express.res.status(403).json({
+    error: "Unauthorized",
+    message: "You do not have permission to access this resource!"
+  });
 }

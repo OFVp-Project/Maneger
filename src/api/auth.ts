@@ -1,7 +1,7 @@
 import express from "express";
 import { emailValidate } from "../pathControl";
 import * as authSchema from "../schemas/auth";
-import { catchExpressError, sessionVerifyPrivilege } from "./expressUtil";
+import { catchExpressError } from "./expressUtil";
 export const auth = express.Router();
 auth.use(catchExpressError);
 
@@ -10,7 +10,7 @@ auth.get("/", ({res}) => authSchema.authSchema.collection.find().toArray().then(
 type authCreateBody = {email?: string, password?: string, token?: string};
 type authCreateQuery = {tokenOnly?: "true"|"false"};
 
-auth.post<{}, {}, authCreateBody, authCreateQuery>("/", (req, res, next) => sessionVerifyPrivilege({req, res, next}, [{req: "addTokens", value: "write"}]), async (req, res): Promise<any> => {
+auth.post<{}, {}, authCreateBody, authCreateQuery>("/", (req, res, next) => authSchema.expressSessionVerify([{keyName: "addTokens", content: "write"}], {req, res, next}), async (req, res): Promise<any> => {
   if (req.query.tokenOnly === "true") {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: "Token required" });
@@ -45,7 +45,7 @@ auth.put<{}, {}, authUpdatePasswordBody, {}>("/", async (req, res) => {
 });
 
 type authUpdatePrivelegies = {Email: string, Password: string} & authSchema.privileges;
-auth.put<{}, {}, authUpdatePrivelegies, {}>("/updatePrivilegie", (req, res, next) => sessionVerifyPrivilege({req, res, next}, [{req: "addTokens", value: "write"}]), async (req, res) => {
+auth.put<{}, {}, authUpdatePrivelegies, {}>("/updatePrivilegie", (req, res, next) => authSchema.expressSessionVerify([{keyName: "addTokens", content: "write"}], {req, res, next}), async (req, res) => {
   const { Email, Password, admin, users, addTokens } = req.body;
   if (typeof Email !== "string") return res.status(400).json({ error: "Invalid email" });
   else if (!emailValidate.test(Email)) return res.status(400).json({ error: "Invalid email" });
@@ -59,7 +59,7 @@ auth.put<{}, {}, authUpdatePrivelegies, {}>("/updatePrivilegie", (req, res, next
 
 type authDeleteBody = {email?: string, password?: string, token?: string};
 type authDeleteQuery = {isToken?: "true"|"false"};
-auth.delete<{}, {}, authDeleteBody, authDeleteQuery>("/", (req, res, next) => sessionVerifyPrivilege({req, res, next}, [{req: "addTokens", value: "write"}]), async (req, res) => {
+auth.delete<{}, {}, authDeleteBody, authDeleteQuery>("/", (req, res, next) => authSchema.expressSessionVerify([{keyName: "addTokens", content: "write"}], {req, res, next}), async (req, res) => {
   if ((await authSchema.authSchema.countDocuments()) <= 1) return res.status(400).json({error: "Not allowed to delete last user, create new user first to delete this user"});
   if (req.query.isToken === "true") return authSchema.deleteToken({Token: req.body.token}).then(data => res.json(data)).catch(err => res.status(400).json({ error: String(err) }));
   const {email, password} = req.body;

@@ -10,7 +10,13 @@
       "args": ["testProject.ts"],
       "cwd": "${workspaceRoot}",
       "internalConsoleOptions": "openOnSessionStart",
-      "skipFiles": ["<node_internals>/**", "node_modules/**"]
+      "skipFiles": ["<node_internals>/**", "node_modules/**"],
+      "env": {
+        "NODE_ENV": "development",
+        "COOKIE_SECRET": "dev",
+        "PASSWORD_SECERET": "aaaaa",
+        "MONGO_URL": "mongodb://localhost"
+      }
     }
   ]
 }
