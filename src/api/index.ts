@@ -14,10 +14,6 @@ import { schemas as schemasRoute } from "./schemas";
 import { isDebug, onStorage, emailValidate } from "../pathControl";
 import * as authSchema from "../schemas/auth";
 import { RemoveKeysFromJson, authEndpoints, catchExpressError } from "./expressUtil";
-if (!process.env.COOKIE_SECRET) {
-  console.error("COOKIE_SECRET is not set");
-  process.exit(1);
-}
 
 // Express
 export const app = express();
@@ -48,21 +44,28 @@ app.use((req, res, next) => {
   }
   return next();
 });
-if (!isDebug) app.use(ExpressSession({
-  secret: process.env.COOKIE_SECRET,
-  name: "ofvp_session",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: false,
-    secure: "auto",
-    maxAge: (1000 * 60 * 60 * 24 * 30),
-  },
-  store: new (sessionStore(ExpressSession))({
-    path: path.join(onStorage, "sessionsDir"),
-    secret: process.env.COOKIE_SECRET
-  })
-}));
+if (!isDebug) {
+  const { COOKIE_SECRET } = process.env;
+  if (!COOKIE_SECRET) {
+    console.error("COOKIE_SECRET is not set");
+    process.exit(1);
+  }
+  app.use(ExpressSession({
+    secret: COOKIE_SECRET,
+    name: "ofvp_session",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: false,
+      secure: "auto",
+      maxAge: (1000 * 60 * 60 * 24 * 30),
+    },
+    store: new (sessionStore(ExpressSession))({
+      path: path.join(onStorage, "sessionsDir"),
+      secret: COOKIE_SECRET
+    })
+  }));
+}
 declare module "express-session" {
   export interface Session {
     userAuth?: authSchema.AuthToken

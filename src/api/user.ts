@@ -156,6 +156,7 @@ user.get<{Username: string}, {}, any, {keyIndex?: string, dns?: string, allowIPs
   if (!wireguardConfig) return res.status(404).json({error: "This user does not have wireguard keys"});
   const wireguardPeerIndex = wireguardConfig.Keys[keyIndex];
   if (!wireguardPeerIndex) return res.status(404).json({error: "key index not found"});
+  const serverKeys = await Wireguard.wireguardInterfaceConfig();
 
   const config: wireguardJsonConfig = {
     Interface: {
@@ -164,7 +165,7 @@ user.get<{Username: string}, {}, any, {keyIndex?: string, dns?: string, allowIPs
       DNS: dns
     },
     Peer: {
-      PublicKey: wireguardPeerIndex.keys.Public,
+      PublicKey: serverKeys.Public,
       PresharedKey: wireguardPeerIndex.keys.Preshared,
       AllowedIPs: allowIPs,
       Endpoint: WIREGUARD_HOST,
