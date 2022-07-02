@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "build": "tsc",
-    "start": "npm run build && pm2-runtime start ecosystem.config.js",
+    "start": "node dist/index.js",
     "start:tsnode": "ts-node src/index.ts",
     "dev": "nodemon",
     "test": "ts-node testProject.ts"
@@ -54,7 +54,6 @@
     "ip-matching": "^2.1.2",
     "mongoose": "^6.4.1",
     "netmask": "^2.0.2",
-    "pm2": "^5.2.0",
     "qrcode": "^1.5.0",
     "session-file-store": "^1.5.0",
     "socket.io": "^4.5.1",

@@ -8,9 +8,7 @@ LABEL name="OFVp Server" \
 
 # Install Wget and Node.js
 ARG DEBIAN_FRONTEND="noninteractive"
-RUN apt update && apt install -y wget && \
-  wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash && \
-  rm -rf /var/lib/apt/*
+RUN apt update && apt install -y wget && wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash && rm -rf /var/lib/apt/*
 
 # Setup Project Environments
 ENV \
@@ -36,10 +34,9 @@ EXPOSE 3000/tcp
 # Volume definition to Storage any files genereated by the APIs and Manegers.
 VOLUME [ "/data" ]
 
-# Install PM2 to run the APIs and Manegers.
+# Start API and Maneger.
 WORKDIR /app
-RUN npm i -g pm2
-ENTRYPOINT [ "pm2-runtime", "start", "ecosystem.config.js" ]
+ENTRYPOINT [ "node", "dist/index.js" ]
 
 # Install Packages
 COPY package*.json ./
