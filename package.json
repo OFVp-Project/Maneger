@@ -45,7 +45,7 @@
   "homepage": "https://github.com/OFVp-Project/DeamonManeger#readme",
   "dependencies": {
     "body-parser": "^1.20.0",
-    "cli-color": "^2.0.2",
+    "cli-color": "^2.0.3",
     "cors": "^2.8.5",
     "cron": "^2.0.0",
     "express": "^4.18.1",
