@@ -9,7 +9,26 @@ import * as usersIDs from "../schemas/UserID";
 import * as expressUtil from "./expressUtil";
 import * as auth from "../schemas/auth";
 import { isDebug } from "../pathControl";
+import calNet from "../lib/calNet";
 export const user = express.Router();
+
+async function mountUserJson(User: usersIDs.userType) {
+  const wireguard = await Wireguard.WireguardSchema.findOne({UserID: User.UserId}).lean().catch(() => undefined);
+  const ssh = await sshManeger.sshSchema.findOne({UserID: User.UserId}).lean().catch(() => ({}) as sshManeger.sshType);
+  const userSSHtrafficdate = calNet(ssh?.dateTransfered||0);
+  return {
+    UserId: User?.UserId,
+    Username: User?.Username,
+    expireDate: User?.expireDate,
+    SSH: {
+      maxConnections: ssh?.maxConnections,
+      currentConnections: ssh?.currentConnections,
+      dateTransfered: `${userSSHtrafficdate.value} ${userSSHtrafficdate.unit}`
+    },
+    Wireguard: wireguard?.Keys||[]
+  };
+}
+
 
 user.use(expressUtil.catchExpressError);
 if (process.env.NODE_ENV === "production") user.use(RateLimit({
@@ -83,36 +102,14 @@ user.delete<{}, {}, {Username: string}, {}>("/", authTokenVerify, async (req, re
 });
 
 user.get("/", ({res}) => {
-  return usersIDs.GetUsers().then(user => Promise.all(user.map(User => {
-    return sshManeger.sshSchema.findOne({UserID: User.UserId}).lean().then(ssh => {
-      return Wireguard.WireguardSchema.findOne({UserID: User.UserId}).lean().then(wireguard => {
-        return {
-          UserId: User.UserId,
-          Username: User.Username,
-          expireDate: User.expireDate,
-          SSH: {maxConnections: ssh?.maxConnections},
-          Wireguard: wireguard?.Keys||[]
-        };
-      });
-    });
-  }))).then(res.json).catch(err => res.status(400).json({message: String(err).replace("Error: ", "")}));
+  return usersIDs.GetUsers().then(user => Promise.all(user.map(User => mountUserJson(User)))).then(res.json).catch(err => res.status(400).json({message: String(err).replace("Error: ", "")}));
 });
 
 user.get("/:Username", (req, res) => {
   return usersIDs.findOne(req.params.Username).then(user => {
     if (!user) return res.status(400).json({message: "user not found"});
-    return sshManeger.sshSchema.findOne({UserID: user.UserId}).lean().then(ssh => {
-      return Wireguard.WireguardSchema.findOne({UserID: user.UserId}).lean().then(wireguard => {
-        return res.json({
-          UserId: user.UserId,
-          Username: user.Username,
-          Expire: user.expireDate,
-          SSH: {maxConnections: ssh?.maxConnections},
-          Wireguard: wireguard?.Keys||[]
-        });
-      });
-    });
-  }).catch(err => res.status(400).json({message: String(err).replace("Error: ", "")}));
+    return mountUserJson(user).then(useJson => res.json(useJson)).catch(err => res.status(400).json({message: String(err).replace("Error: ", "")}));
+  });
 });
 
 type wireguardConfigTypes = "wireguard"|"json"|"yaml"|"qrcode"|"openwrt18";

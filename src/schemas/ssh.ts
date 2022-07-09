@@ -2,43 +2,29 @@ import mongoose from "mongoose";
 import { Connection } from "../mongo";
 import * as Encrypt from "../PasswordEncrypt";
 
-type sshType = {
+export type sshType = {
   UserID: string,
   Username: string,
   expireDate: Date,
   maxConnections: number,
-  Password: Encrypt.passwordEncrypted
+  Password: Encrypt.passwordEncrypted,
+  currentConnections: number,
+  dateTransfered: number,
+  traffic: {
+    restartDate: Date,
+  }
 };
 
 export const sshSchema = Connection.model<sshType>("ssh", new mongoose.Schema<sshType, mongoose.Model<sshType, sshType, sshType, sshType>>({
-  UserID: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  Username: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  maxConnections: {
-    type: Number,
-    required: true,
-    default: 5
-  },
-  expireDate: {
-    type: Date,
-    required: true
-  },
-  Password: {
-    Encrypt: {
-      type: String,
-      required: true
-    },
-    iv: {
-      type: String,
-      required: true
-    }
+  UserID: {type: String, required: true, unique: true},
+  Username: {type: String, required: true, unique: true},
+  Password: {Encrypt: {type: String, required: true}, iv: {type: String, required: true}},
+  maxConnections: {type: Number, required: true, default: 5},
+  expireDate: {type: Date, required: true},
+  currentConnections: {type: Number, default: 0},
+  dateTransfered: {type: Number, default: 0},
+  traffic: {
+    restartDate: {type: Date, default: () => new Date()},
   }
 }));
 

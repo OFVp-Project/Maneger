@@ -2,7 +2,7 @@ import crypto from "crypto";
 import mongoose from "mongoose";
 import { Connection } from "../mongo";
 
-type userType = {
+export type userType = {
   UserId: string,
   Username: string,
   expireDate: Date

@@ -12,6 +12,7 @@ services:
     command: "--bind_ip_all --port 27017 --noauth --quiet --logpath /dev/null"
     networks: [defaultOfvpNetwork]
     volumes: [mongoStorage:/data/db]
+
   maneger:
     build: ./
     ports: [3000:3000/tcp]
@@ -20,15 +21,13 @@ services:
     environment:
       NODE_ENV: "development"
       MONGO_URL: "mongodb://mongodb:27017/ofvp"
-      PASSWORD_SECRET: "dev"
+      PASSWORD_SECERET: "dev"
       COOKIE_SECRET: "dev"
-      DAEMON_USERNAME: ""
-      DAEMON_PASSWORD: ""
 
   wireguard:
     image: ghcr.io/ofvp-project/wireguard:next
     restart: always
-    depends_on: [ofvpmaneger]
+    depends_on: [maneger]
     networks: [defaultOfvpNetwork]
     volumes: [/lib/modules/:/lib/modules/:ro]
     ports: [51820:51820/udp]
@@ -39,7 +38,7 @@ services:
       net.ipv6.conf.all.forwarding: 1
       net.ipv4.ip_forward: 1
     environment:
-      DAEMON_HOST: "http://ofvpmaneger:5000"
+      DAEMON_HOST: "http://maneger:5000"
       DAEMON_USERNAME: ""
       DAEMON_PASSWORD: ""
 
@@ -51,11 +50,9 @@ services:
     ports: [2222:22/tcp]
     volumes: [sshStorage:/data]
     environment:
-      PASSWORD_ENCRYPT: "dev"
       NODE_ENV: "development"
-      DAEMON_HOST: "http://ofvpmaneger:5000"
-      DAEMON_USERNAME: ""
-      DAEMON_PASSWORD: ""
+      MONGO_URL: "mongodb://mongodb:27017/ofvp"
+      PASSWORD_SECERET: "dev"
 
   webproxy:
     image: ghcr.io/ofvp-project/webproxy:latest

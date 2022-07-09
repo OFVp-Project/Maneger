@@ -9,7 +9,7 @@ import { onStorage } from "../pathControl";
 
 type key = {Preshared: string, Private: string, Public: string};
 type ip = {v4: {ip: string, mask?: string}, v6?: {ip: string, mask: string}};
-type wireguardType = {UserId: string, Keys: {keys?: key, ip: ip}[]};
+export type wireguardType = {UserId: string, Keys: {keys?: key, ip: ip}[]};
 export const WireguardSchema = Connection.model<wireguardType>("Wireguard", new mongoose.Schema<wireguardType>({
   UserId: {
     type: String,
