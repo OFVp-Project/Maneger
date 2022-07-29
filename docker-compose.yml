@@ -45,7 +45,7 @@ services:
   ssh:
     image: ghcr.io/ofvp-project/ssh-server:next
     restart: always
-    depends_on: [ofvpmaneger]
+    depends_on: [maneger]
     networks: [defaultOfvpNetwork]
     ports: [2222:22/tcp]
     volumes: [sshStorage:/data]

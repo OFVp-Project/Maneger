@@ -1,6 +1,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { utils as wireguardUtils } from "wireguard-tools.js";
 import mongoose from "mongoose";
 import * as IpMatching from "ip-matching";
 import * as nodeCidr from "../lib/node-cidr";
@@ -87,19 +88,10 @@ function convert_ipv4_to_ipv6(ipV4 = ""){
   throw "Invalid Address";
 }
 
-// Create Random Keys
-const randomKeys = () => new Promise<{privateKey: string, publicKey: string}>((res, rej) => crypto.generateKeyPair("x25519", {publicKeyEncoding: {format: "der", type: "spki"}, privateKeyEncoding: {format: "der", type: "pkcs8"}}, (err: Error, publicKey: Buffer, privateKey: Buffer) => {
-  if (err) rej(err);
-  else res({
-    privateKey: Buffer.from(privateKey.slice(16)).toString("base64"),
-    publicKey: Buffer.from(publicKey.slice(12)).toString("base64")
-  });
-}));
-
 export async function wireguardInterfaceConfig(): Promise<{Preshared: string; Private: string; Public: string;}> {
   if (fs.existsSync(path.resolve(onStorage, "wireguardInterface.json"))) return JSON.parse(fs.readFileSync(path.resolve(onStorage, "wireguardInterface.json"), "utf8"));
-  const keysPairOne = await randomKeys(), keysPairTwo = await randomKeys();
-  const keys = {Preshared: keysPairTwo.privateKey, Private: keysPairOne.privateKey, Public: keysPairOne.publicKey};
+  const generatedKey = await wireguardUtils.keygen.default(true);
+  const keys = {Preshared: generatedKey.preshared, Private: generatedKey.private, Public: generatedKey.public};
   fs.writeFileSync(path.resolve(onStorage, "wireguardInterface.json"), JSON.stringify(keys, null, 2));
   return keys;
 }
@@ -135,11 +127,11 @@ export async function AddKeys(UserId: string, KeysToRegister: number) {
   const Keys = [];
   while(KeysToRegister > 0){
     KeysToRegister--
-    const keysPairOne = await randomKeys(), keysPairTwo = await randomKeys();
+    const keysPair = await wireguardUtils.keygen.default(true);
     const ipV4 = await createIp();
     const ipV6 = convert_ipv4_to_ipv6(ipV4);
     const data = {
-      keys: {Preshared: keysPairTwo.privateKey, Private: keysPairOne.privateKey, Public: keysPairOne.publicKey},
+      keys: {Preshared: keysPair.preshared, Private: keysPair.private, Public: keysPair.public},
       ip: {
         v4: {
           ip: ipV4,

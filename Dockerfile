@@ -40,7 +40,7 @@ ENTRYPOINT [ "node", "dist/index.js" ]
 
 # Install Packages
 COPY package*.json ./
-RUN npm install --no-save
+RUN npm install --no-save --ignore-scripts
 
 # Build
 COPY ./ ./
